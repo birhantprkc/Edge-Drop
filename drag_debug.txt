@@ -3463,3 +3463,9 @@
 [2026-07-15T12:00:36.093Z] createFileStackDragIcon resvg result: isEmpty=false, size={"width":96,"height":96}
 [2026-07-15T12:00:36.094Z] dragIcon result: isEmpty=false, size={"width":96,"height":96}
 [2026-07-15T12:00:36.094Z] calling sender.startDrag with item.file=C:\Users\yadav\Downloads\test_project.py, item.files=["C:\\Users\\yadav\\Downloads\\test_project.py"]
+[2026-07-16T07:41:02.483Z] createFileStackDragIcon calling Resvg for count=1
+[2026-07-16T07:41:03.399Z] createFileStackDragIcon resvg result: isEmpty=false, size={"width":96,"height":96}
+[2026-07-16T07:41:03.400Z] createFileStackDragIcon calling Resvg for count=1
+[2026-07-16T07:41:04.268Z] createFileStackDragIcon resvg result: isEmpty=false, size={"width":96,"height":96}
+[2026-07-16T07:41:04.268Z] createFileStackDragIcon calling Resvg for count=1
+[2026-07-16T07:41:05.123Z] createFileStackDragIcon resvg result: isEmpty=false, size={"width":96,"height":96}

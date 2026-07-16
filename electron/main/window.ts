@@ -39,9 +39,14 @@ let detectorWindow: BrowserWindow | null = null
 let interactive = false
 
 export let currentHotZoneWidth = 3
+export let currentStickDisplayId: number | undefined
 
 export function setHotZoneWidth(width: number): void {
   currentHotZoneWidth = width
+}
+
+export function setStickDisplayId(id: number | undefined): void {
+  currentStickDisplayId = id
 }
 
 export function getMainWindow(): BrowserWindow | null {
@@ -123,8 +128,14 @@ export function startCursorPoll(): void {
   cursorPollTimer = setInterval(() => {
     if (runtime.quitting || !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) return
 
+    const settings = loadSettings()
+
     const pt = screen.getCursorScreenPoint()
     const display = screen.getDisplayNearestPoint(pt)
+
+    // Only respond on the configured stick display (or any if none set).
+    if (currentStickDisplayId !== undefined && display.id !== currentStickDisplayId) return
+
     const wa = display.workArea
 
     // Translate screen coords → window-client coords.
@@ -135,8 +146,6 @@ export function startCursorPoll(): void {
 
     // Guard against garbage values that Windows occasionally sends.
     if (clientX < -1000 || clientX > 10000 || clientY < -1000 || clientY > 10000) return
-
-    const settings = loadSettings()
 
     let inEdge = false
     switch (settings.stickPosition) {
@@ -209,6 +218,7 @@ function getStickGeometry(): { x: number; y: number; width: number; height: numb
     saveSettings({ stickDisplayId: result.displayId })
   }
 
+  currentStickDisplayId = result.displayId
   return { x: result.x, y: result.y, width: result.width, height: result.height }
 }
 
