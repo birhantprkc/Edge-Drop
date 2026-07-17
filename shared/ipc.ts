@@ -64,6 +64,9 @@ export interface InvokeMap {
 
   /** Check for application updates on GitHub releases. */
   'app:check-update': { args: []; result: { latestVersion: string; downloadUrl: string } | null }
+
+  /** Get the list of connected displays. */
+  'displays:list': { args: []; result: import('./types').DisplayInfo[] }
 }
 
 /* ------------------------------------------------------------------ */
@@ -97,7 +100,15 @@ export interface EventMap {
    * Windows transparent windows).
    * payload: { x, y, inEdge, inZone }
    */
-  'window:cursor-edge': [data: { x: number; y: number; inEdge: boolean; inZone: boolean }]
+  'window:cursor-edge': [data: {
+    x: number
+    y: number
+    inEdge: boolean
+    inZone: boolean
+    stickPosition: import('./types').StickPosition
+    displayWidth: number
+    displayHeight: number
+  }]
 }
 
 /* ------------------------------------------------------------------ */

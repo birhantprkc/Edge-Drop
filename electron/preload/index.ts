@@ -105,6 +105,7 @@ const api = {
   removeSubitem: (req: import('../../shared/types').DragRequest) => invoke('item:remove-subitem', req),
   mergeItems: (sourceId: string, targetId: string) => invoke('item:merge', sourceId, targetId),
   splitItem: (req: import('../../shared/types').DragRequest) => invoke('item:split', req),
+  getDisplays: () => invoke('displays:list'),
   updateSettings: (patch: Partial<InvokeResult<'settings:update'>>) =>
     invoke('settings:update', patch),
   setInteractive: (value: boolean) => invoke('window:set-interactive', value),
@@ -119,7 +120,7 @@ const api = {
   onOpenSettings: (cb: () => void) => on('window:open-settings', cb),
   onDragEnd: (cb: () => void) => on('item:drag-end', cb),
   onInternalDrop: (cb: (pos: { x: number; y: number }) => void) => on('item:internal-drop', cb),
-  onCursorEdge: (cb: (data: { x: number; y: number; inEdge: boolean; inZone: boolean }) => void) => on('window:cursor-edge', cb),
+  onCursorEdge: (cb: (data: EventArgs<'window:cursor-edge'>[0]) => void) => on('window:cursor-edge', cb),
   onToast: (cb: (toast: { id: string; message: string; tone: 'info' | 'error' }) => void) => on('ui:toast', cb),
   onTutorialStep: (cb: (step: number) => void) => on('tutorial:step', cb),
 

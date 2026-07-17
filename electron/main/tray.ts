@@ -6,11 +6,12 @@
  * state (checkmarks) is rebuilt every time the menu opens so it always reflects
  * current settings.
  */
-import { Menu, Tray, app, nativeImage, Notification } from 'electron'
+import { Menu, Tray, app, nativeImage, Notification, screen } from 'electron'
 import { existsSync } from 'node:fs'
 import { PATHS } from '../store/paths'
 import { loadSettings, saveSettings } from '../store/settings'
-import { getMainWindow, setVisible } from './window'
+import { getMainWindow, setVisible, repositionWindow } from './window'
+import type { StickPosition } from '../../shared/types'
 import { pushState } from './state'
 
 let tray: Tray | null = null
@@ -56,6 +57,39 @@ export function createTray(): Tray {
     } catch { /* ignore */ }
   }
 
+  function buildDisplaySubmenu(currentId: number | undefined): Electron.MenuItemConstructorOptions[] {
+    const all = screen.getAllDisplays()
+    const primary = screen.getPrimaryDisplay()
+    return all.map((d) => {
+      const name = (d as any).label || (d.id === primary.id ? 'Primary' : `Display #${d.id}`)
+      return {
+        label: d.id === primary.id
+          ? `${name} (Primary) ${d.bounds.width}×${d.bounds.height}`
+          : `${name} ${d.bounds.width}×${d.bounds.height}`,
+        type: 'radio' as const,
+        checked: currentId === d.id,
+        click: () => {
+          const next = saveSettings({ stickDisplayId: d.id })
+          pushState.settings(next)
+          repositionWindow()
+        }
+      }
+    })
+  }
+
+  function buildStickSubmenu(current: StickPosition): Electron.MenuItemConstructorOptions[] {
+    return (['left', 'right', 'top'] as StickPosition[]).map((pos) => ({
+      label: pos.charAt(0).toUpperCase() + pos.slice(1),
+      type: 'radio' as const,
+      checked: current === pos,
+      click: () => {
+        const next = saveSettings({ stickPosition: pos })
+        pushState.settings(next)
+        repositionWindow()
+      }
+    }))
+  }
+
   const rebuild = () => {
     const settings = loadSettings()
     const menu = Menu.buildFromTemplate([
@@ -87,6 +121,15 @@ export function createTray(): Tray {
           pushState.settings(next)
           applyIncognito(next.incognito)
         }
+      },
+      { type: 'separator' },
+      {
+        label: 'Stick to',
+        submenu: buildStickSubmenu(settings.stickPosition)
+      },
+      {
+        label: 'Display',
+        submenu: buildDisplaySubmenu(settings.stickDisplayId)
       },
       { type: 'separator' },
       {

@@ -5,14 +5,15 @@
  * renderer calls them through the typed preload bridge, so a signature mismatch
  * is a compile-time error rather than a runtime one.
  */
-import { app, ipcMain, clipboard, nativeImage } from 'electron'
-import { existsSync } from 'node:fs'
+import { app, ipcMain, clipboard, nativeImage, screen } from 'electron'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { psHost } from './powershell'
 import { type InvokeMap, type InvokeChannel, type SendMap, type SendChannel } from '../../shared/ipc'
 import { getStore, loadSettings, saveSettings, pushState, addFiles, getWatcher } from './state'
 import { getMainWindow } from './window'
-import { setInteractive, setHeartbeatPaused, setHotZoneWidth } from './window'
+import { setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow } from './window'
 import { getOnboardingWindow } from './onboardingWindow'
 import { startDragOut, resolveDragData } from './drag'
 import { clipboardSignature } from '../clipboard/formats'
@@ -147,6 +148,27 @@ function handle<C extends InvokeChannel>(
   ipcMain.handle(channel, (_e, ...args) => fn(...(args as InvokeMap[C]['args'])))
 }
 
+/** Detects whether the app is packaged and running as a Microsoft Store (MSIX) build. */
+function isStoreBuild(): boolean {
+  if (process.windowsStore || process.env.APP_BUILD_TARGET === 'store') {
+    return true
+  }
+  try {
+    if (app.isPackaged) {
+      const pkgPath = join(app.getAppPath(), 'package.json')
+      if (existsSync(pkgPath)) {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+        if (pkg.buildTarget === 'store') {
+          return true
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return false
+}
+
 export function registerIpc(): void {
   handle('state:load', () => {
     return {
@@ -157,6 +179,9 @@ export function registerIpc(): void {
   })
 
   handle('app:check-update', async () => {
+    if (isStoreBuild()) {
+      return null
+    }
     try {
       const response = await fetch('https://api.github.com/repos/Deepender25/Edge-Drop/releases/latest', {
         headers: {
@@ -437,6 +462,9 @@ export function registerIpc(): void {
     if (patch.hotZoneWidth !== undefined) {
       setHotZoneWidth(patch.hotZoneWidth)
     }
+    if (patch.stickPosition !== undefined || patch.stickDisplayId !== undefined) {
+      repositionWindow()
+    }
     pushState.settings(next)
     return next
   })
@@ -450,6 +478,25 @@ export function registerIpc(): void {
     if (win && !win.isDestroyed()) {
       win.minimize()
     }
+  })
+
+  handle('displays:list', () => {
+    const all = screen.getAllDisplays()
+    const primary = screen.getPrimaryDisplay()
+    return all.map((d) => {
+      const rawName = (d as any).label || ''
+      const name = rawName || (d.id === primary.id ? 'Primary' : `Display #${d.id}`)
+      return {
+        id: d.id,
+        bounds: { x: d.bounds.x, y: d.bounds.y, width: d.bounds.width, height: d.bounds.height },
+        isPrimary: d.id === primary.id,
+        label: d.id === primary.id
+          ? `${name} (Primary) ${d.bounds.width}×${d.bounds.height}`
+          : `${name} ${d.bounds.width}×${d.bounds.height}`,
+        name: d.id === primary.id ? `${name} (Primary)` : name,
+        resolution: `${d.bounds.width}×${d.bounds.height}`
+      }
+    })
   })
 }
 

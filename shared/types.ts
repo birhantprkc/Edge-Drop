@@ -61,6 +61,17 @@ export interface ClipboardItemDto extends Omit<ClipboardItem, 'data'> {
 /** Section the renderer groups items into. */
 export type ItemSection = 'pinned' | 'shelf'
 
+export type StickPosition = 'left' | 'right'
+
+export interface DisplayInfo {
+  id: number
+  bounds: { x: number; y: number; width: number; height: number }
+  isPrimary: boolean
+  label: string
+  name: string
+  resolution: string
+}
+
 /**
  * Request to begin a native OS drag-out of one item.
  *
@@ -108,6 +119,8 @@ export interface Settings {
   uiStyle: 'modern' | 'compact'
   /** Flag to track if the onboarding tutorial is completed. */
   tutorialCompleted: boolean
+  stickPosition: StickPosition
+  stickDisplayId?: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -121,7 +134,9 @@ export const DEFAULT_SETTINGS: Settings = {
   clearUnpinnedOnRestart: false,
   autoDeleteHours: 0,
   uiStyle: 'modern',
-  tutorialCompleted: false
+  tutorialCompleted: false,
+  stickPosition: 'left',
+  stickDisplayId: undefined
 }
 
 

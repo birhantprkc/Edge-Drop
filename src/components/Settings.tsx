@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { useStore } from '../store/appStore'
+import type { DisplayInfo } from '../../shared/types'
 import '../styles/settings.css'
 
 export function Settings() {
@@ -6,6 +8,11 @@ export function Settings() {
   const patch = useStore((s) => s.patchSettings)
   const updateInfo = useStore((s) => s.updateInfo)
   const currentVersion = useStore((s) => s.currentVersion)
+
+  const [displays, setDisplays] = useState<DisplayInfo[]>([])
+  useEffect(() => {
+    window.edge.getDisplays().then(setDisplays).catch(() => {})
+  }, [])
 
   return (
     <div className="settings-list">
@@ -161,6 +168,53 @@ export function Settings() {
               onClick={() => patch({ panelHeight: opt.val })}
             >
               {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-divider" />
+
+      {/* Stick position */}
+      <div className="setting-row vertical">
+        <div className="setting-info">
+          <div className="setting-title">Stick position</div>
+          <div className="setting-desc">Screen edge to attach the panel</div>
+        </div>
+        <div className="setting-pills">
+          {[
+            { label: 'Left', val: 'left' as const },
+            { label: 'Right', val: 'right' as const }
+          ].map((opt) => (
+            <button
+              key={opt.label}
+              className={`pill ${settings.stickPosition === opt.val ? 'active' : ''}`}
+              onClick={() => patch({ stickPosition: opt.val })}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-divider" />
+
+      {/* Display picker */}
+      <div className="setting-row vertical">
+        <div className="setting-info">
+          <div className="setting-title">Display</div>
+          <div className="setting-desc">Monitor to stick the panel to</div>
+        </div>
+        <div className="setting-pills">
+          {displays.length === 0 && <div className="pill disabled">Loading...</div>}
+          {displays.map((d) => (
+            <button
+              key={d.id}
+              className={`pill display-pill ${settings.stickDisplayId === d.id ? 'active' : ''}`}
+              onClick={() => patch({ stickDisplayId: d.id })}
+            >
+              <div className="pill-name">{d.name}</div>
+              <div className="pill-res">{d.resolution}</div>
             </button>
           ))}
         </div>
