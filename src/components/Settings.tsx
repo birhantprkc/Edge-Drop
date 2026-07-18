@@ -207,16 +207,19 @@ export function Settings() {
         </div>
         <div className="setting-pills">
           {displays.length === 0 && <div className="pill disabled">Loading...</div>}
-          {displays.map((d) => (
-            <button
-              key={d.id}
-              className={`pill display-pill ${settings.stickDisplayId === d.id ? 'active' : ''}`}
-              onClick={() => patch({ stickDisplayId: d.id })}
-            >
-              <div className="pill-name">{d.name}</div>
-              <div className="pill-res">{d.resolution}</div>
-            </button>
-          ))}
+          {displays.map((d) => {
+            const activeDisplayId = settings.stickDisplayId ?? displays.find(d => d.isPrimary)?.id;
+            return (
+              <button
+                key={d.id}
+                className={`pill display-pill ${activeDisplayId === d.id ? 'active' : ''}`}
+                onClick={() => patch({ stickDisplayId: d.id })}
+              >
+                <div className="pill-name">{d.name}</div>
+                <div className="pill-res">{d.resolution}</div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
