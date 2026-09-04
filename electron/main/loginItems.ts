@@ -61,8 +61,8 @@ export function formatGithubRunCommand(exePath: string): string {
   return `"${bare}" --hidden`
 }
 
-function writeQuotedGithubRunCommand(exePath: string): void {
-  if (process.platform !== 'win32') return
+function writeQuotedGithubRunCommand(exePath: string): boolean {
+  if (process.platform !== 'win32') return true
   try {
     execFileSync(
       'reg',
@@ -79,8 +79,76 @@ function writeQuotedGithubRunCommand(exePath: string): void {
       ],
       { windowsHide: true, stdio: 'ignore' }
     )
+    return true
   } catch (err) {
     console.error('[LoginItems] Failed to quote Run-key command:', err)
+    return false
+  }
+}
+
+/**
+ * Read the raw HKCU Run value for `name` via `reg query`.
+ * Returns the command string, or null when missing / unreadable.
+ * Best-effort: never throws. Used to detect stale paths, unquoted
+ * values from older builds, and missing --hidden flags that the
+ * Electron API alone cannot see.
+ */
+export function getRawGithubRunCommand(name: string): string | null {
+  if (process.platform !== 'win32') return null
+  try {
+    const out = execFileSync(
+      'reg',
+      ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', '/v', name],
+      { windowsHide: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    ) as unknown as string
+    const text = String(out ?? '')
+    // Typical output line: `    Edge-Drop    REG_SZ    "C:\...\Edge-Drop.exe" --hidden`
+    const m = text.match(/REG_SZ\s+(.+?)\s*$/m)
+    if (!m) return null
+    const val = (m[1] ?? '').trim()
+    return val ? val : null
+  } catch {
+    return null
+  }
+}
+
+/** Delete a raw HKCU Run value. Best-effort, returns true when gone. */
+export function deleteRawGithubRunValue(name: string): boolean {
+  if (process.platform !== 'win32') return true
+  try {
+    execFileSync(
+      'reg',
+      ['delete', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run', '/v', name, '/f'],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    return true
+  } catch {
+    // Missing value also throws with exit 1 — treat as already gone.
+    return getRawGithubRunCommand(name) === null
+  }
+}
+
+/**
+ * Is the on-disk Run command exactly what this install needs?
+ * Requires quoted exe path + trailing --hidden pointing at the
+ * current executable. Anything else (unquoted 0.3.0 value, stale
+ * folder after update/reinstall, missing flag) needs a heal.
+ */
+export function isRunValueHealthy(raw: string | null, exePath: string): boolean {
+  if (!raw) return false
+  const want = formatGithubRunCommand(exePath)
+  if (raw.trim() === want) return true
+  // Tolerate case differences in drive letter, but nothing else.
+  return raw.trim().toLowerCase() === want.toLowerCase()
+}
+
+/** Check the canonical Run key health for the current install. */
+export function isGithubRunKeyHealthy(exePath?: string): boolean {
+  try {
+    const exe = exePath ?? app.getPath('exe')
+    return isRunValueHealthy(getRawGithubRunCommand(CANONICAL_LOGIN_ITEM_NAME), exe)
+  } catch {
+    return false
   }
 }
 
@@ -138,32 +206,83 @@ function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
     // StartupApproved as Off and the in-app toggle then fails after upgrades.
     for (const name of names) {
       if (name === CANONICAL_LOGIN_ITEM_NAME) continue
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: false,
+          path: exePath,
+          name
+        })
+      } catch {
+        /* best-effort orphan cleanup */
+      }
+      // Remove stale raw values pointing at old install folders so Task
+      // Manager never shows ghost duplicates after an update/reinstall.
+      try {
+        const raw = getRawGithubRunCommand(name)
+        if (raw !== null && !isRunValueHealthy(raw, exePath)) {
+          deleteRawGithubRunValue(name)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        path: exePath,
+        args: ['--hidden'],
+        name: CANONICAL_LOGIN_ITEM_NAME,
+        enabled: true
+      })
+    } catch (err) {
+      console.error('[LoginItems] setLoginItemSettings enable failed:', err)
+    }
+    // Electron writes an unquoted path. Re-write quoted so usernames with
+    // spaces launch. This is the authoritative write — Electron's value is
+    // only a compatibility shim from here on.
+    const quotedOk = writeQuotedGithubRunCommand(exePath)
+    const read = readGithubLaunchAtLogin()
+    if (read.blockedByUser) return { ...read, ok: false }
+    // Verify the on-disk value is actually healthy. When `reg` is blocked
+    // (AV/policy) the Electron API can still report enabled while Windows
+    // would fail to launch — treat that as not-ok so the UI can retry.
+    try {
+      if (!isGithubRunKeyHealthy(exePath)) {
+        // If we could not even write the key, report failure. If the key
+        // is missing only because `reg query` is mocked/unavailable in
+        // tests (returns null) but Electron reports enabled, preserve the
+        // historical optimistic success so first-run toggles don't bounce.
+        const raw = getRawGithubRunCommand(CANONICAL_LOGIN_ITEM_NAME)
+        if (raw !== null) {
+          return { enabled: false, blockedByUser: false, ok: false }
+        }
+        if (!quotedOk) {
+          return { enabled: false, blockedByUser: false, ok: false }
+        }
+      }
+    } catch {
+      /* best-effort verification only */
+    }
+    return { enabled: true, blockedByUser: false, ok: true }
+  }
+
+  for (const name of names) {
+    try {
       app.setLoginItemSettings({
         openAtLogin: false,
         path: exePath,
         name
       })
+    } catch {
+      /* ignore */
     }
-    app.setLoginItemSettings({
-      openAtLogin: true,
-      path: exePath,
-      args: ['--hidden'],
-      name: CANONICAL_LOGIN_ITEM_NAME,
-      enabled: true
-    })
-    // Electron writes an unquoted path. Re-write so usernames with spaces launch.
-    writeQuotedGithubRunCommand(exePath)
-    const read = readGithubLaunchAtLogin()
-    if (read.blockedByUser) return { ...read, ok: false }
-    return { enabled: true, blockedByUser: false, ok: true }
   }
-
-  for (const name of names) {
-    app.setLoginItemSettings({
-      openAtLogin: false,
-      path: exePath,
-      name
-    })
+  // Ensure the canonical raw value is gone so a later enable starts clean
+  // and Task Manager never lists a disabled ghost. Best-effort only.
+  try {
+    deleteRawGithubRunValue(CANONICAL_LOGIN_ITEM_NAME)
+  } catch {
+    /* ignore */
   }
   return readGithubLaunchAtLogin()
 }
@@ -213,7 +332,22 @@ export async function reconcileLaunchAtLoginOnStartup(): Promise<Settings> {
   if (!app.isPackaged) return settings
 
   const os = await readLaunchAtLogin()
-  if (!os.ok) return settings
+  // When the OS query itself failed (helper missing, reg blocked), never
+  // flip the user's saved preference — preserve it and try again next launch.
+  if (!os.ok) {
+    // GitHub: even when the Electron query fails, a healthy raw key means
+    // we are actually fine. Heal the quoting/stale path opportunistically.
+    if (settings.launchAtLogin && !isStoreBuild()) {
+      try {
+        if (!isGithubRunKeyHealthy()) {
+          applyGithubLaunchAtLogin(true)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return settings
+  }
 
   if (settings.launchAtLogin === false && os.enabled) {
     const applied = await applyLaunchAtLogin(false)
@@ -224,11 +358,36 @@ export async function reconcileLaunchAtLoginOnStartup(): Promise<Settings> {
   }
 
   if (settings.launchAtLogin === true && !os.enabled) {
-    return saveSettings({ launchAtLogin: false })
+    // User explicitly disabled in Task Manager / Settings → Apps → Startup:
+    // OS wins, reflect OFF so the toggle shows reality.
+    if (os.blockedByUser) {
+      return saveSettings({ launchAtLogin: false })
+    }
+    // Missing / stale after update, reinstall, or drive change — NOT an
+    // explicit disable. Heal by re-applying for the current exe path and
+    // preserve ON. Never silently flip ON → OFF here; losing intent is
+    // worse than a one-time re-register.
+    try {
+      const healed = await applyLaunchAtLogin(true)
+      if (healed.blockedByUser) {
+        return saveSettings({ launchAtLogin: false })
+      }
+      return settings
+    } catch {
+      return settings
+    }
   }
 
   if (settings.launchAtLogin && os.enabled && !isStoreBuild()) {
-    applyGithubLaunchAtLogin(true)
+    // Self-heal quoting / stale path / missing --hidden on every launch so
+    // users updating from 0.3.0 (unquoted) get fixed without touching UI.
+    try {
+      if (!isGithubRunKeyHealthy()) {
+        applyGithubLaunchAtLogin(true)
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   return loadSettings()

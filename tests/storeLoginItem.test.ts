@@ -347,9 +347,11 @@ describe('GitHub Run-key quoting and update heal', () => {
     expect(result.enabled).toBe(true)
 
     if (process.platform === 'win32') {
-      expect(mocks.execFileSync).toHaveBeenCalledTimes(1)
-      const [bin, argv, opts] = mocks.execFileSync.mock.calls[0]
-      expect(bin).toBe('reg')
+      // Enable performs health-check `reg query` calls plus the authoritative
+      // `reg add`. Assert the authoritative write happened with exact quoting.
+      const addCalls = mocks.execFileSync.mock.calls.filter((c) => (c[1] as string[])[0] === 'add')
+      expect(addCalls.length).toBeGreaterThanOrEqual(1)
+      const [, argv, opts] = addCalls[0] as unknown as [string, string[], Record<string, unknown>]
       expect(argv).toEqual([
         'add',
         'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
@@ -362,16 +364,26 @@ describe('GitHub Run-key quoting and update heal', () => {
         '/f'
       ])
       expect(opts).toMatchObject({ windowsHide: true, stdio: 'ignore' })
+      // All reg invocations must be hidden, never via shell string.
+      for (const [bin] of mocks.execFileSync.mock.calls) {
+        expect(bin).toBe('reg')
+      }
     }
   })
 
-  it('disable does not write a Run command — it only turns the login item off', async () => {
+  it('disable removes the raw Run value (reg delete) and never re-adds it', async () => {
     mocks.getLoginItemSettings.mockReturnValue({
       launchItems: [{ name: 'Edge-Drop', path: mocks.exePath, enabled: false, args: ['--hidden'] }],
       executableWillLaunchAtLogin: false
     })
     await applyLaunchAtLogin(false)
-    expect(mocks.execFileSync).not.toHaveBeenCalled()
+    if (process.platform === 'win32') {
+      const calls = mocks.execFileSync.mock.calls.map((c) => (c[1] as string[])[0])
+      expect(calls).toContain('delete')
+      expect(calls).not.toContain('add')
+    } else {
+      expect(mocks.execFileSync).not.toHaveBeenCalled()
+    }
     expect(mocks.setLoginItemSettings).not.toHaveBeenCalledWith(
       expect.objectContaining({ openAtLogin: true })
     )
@@ -422,7 +434,7 @@ describe('GitHub Run-key quoting and update heal', () => {
     )
   })
 
-  it('update heal: settings off does not rewrite a quoted Run key', async () => {
+  it('update heal: settings off cleans the leftover key but never re-enables', async () => {
     mocks.loadSettings.mockReturnValue({ launchAtLogin: false })
     mocks.getLoginItemSettings
       .mockReturnValueOnce({
@@ -436,7 +448,15 @@ describe('GitHub Run-key quoting and update heal', () => {
 
     await reconcileLaunchAtLoginOnStartup()
 
-    expect(mocks.execFileSync).not.toHaveBeenCalled()
+    if (process.platform === 'win32') {
+      const verbs = mocks.execFileSync.mock.calls.map((c) => (c[1] as string[])[0])
+      // Disable path must delete the raw value so no ghost remains...
+      expect(verbs).toContain('delete')
+      // ...but must never re-add / re-enable.
+      expect(verbs).not.toContain('add')
+    } else {
+      expect(mocks.execFileSync).not.toHaveBeenCalled()
+    }
     expect(mocks.setLoginItemSettings).not.toHaveBeenCalledWith(
       expect.objectContaining({ openAtLogin: true })
     )

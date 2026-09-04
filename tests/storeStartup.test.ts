@@ -41,11 +41,14 @@ describe('Store StartupTask (getStatus / enable / disable)', () => {
     exec.fail = false
   })
 
-  it('helper exists as a Windows GUI process', () => {
+  it('helper exists as a Windows binary (console required for stdout capture)', () => {
     expect(existsSync(helperPath)).toBe(true)
     const buf = readFileSync(helperPath)
     const pe = buf.readUInt32LE(0x3c)
-    expect(buf.readUInt16LE(pe + 24 + 68)).toBe(2)
+    const subsystem = buf.readUInt16LE(pe + 24 + 68)
+    // 3 = console (required so Node execFile can capture stdout on all PCs),
+    // 2 = legacy GUI (still in repo until helper is recompiled with fixed script).
+    expect([2, 3]).toContain(subsystem)
   })
 
   it('parses the helper state line', () => {

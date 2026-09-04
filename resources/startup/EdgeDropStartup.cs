@@ -1,5 +1,8 @@
 // Official Windows.ApplicationModel.StartupTask caller.
-// Windows GUI process (no console). Must live inside the AppX.
+// Console-subsystem process (see compile-startup-helper.ps1 /target:exe).
+// Must stay console so Node execFile can capture the numeric state on stdout
+// on all user PCs; windowsHide:true prevents any visible console flash.
+// Must live inside the AppX to keep package identity.
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;

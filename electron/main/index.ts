@@ -15,7 +15,7 @@ import { createWindow, getMainWindow, setInteractive, setVisible, startCursorPol
 import { createTray, registerIncognitoApplier, refreshTray } from './tray'
 import { registerIpc, registerSendListeners } from './ipc'
 import { reconcileLaunchAtLoginOnStartup } from './loginItems'
-import { isStoreBuild } from './config'
+import { isStoreBuild, shouldStartHidden } from './config'
 import { prewarmDragIcons } from './drag'
 import { initState, getWatcher, loadSettings, saveSettings, pushState, stopStateTimers, getStore } from './state'
 import { initAutoUpdater } from './updater'
@@ -124,7 +124,11 @@ app.whenReady().then(() => {
 
   // Reflect settings immediately.
   let settings = loadSettings()
-  if (!settings.tutorialCompleted) {
+  const hiddenLaunch = shouldStartHidden()
+  if (hiddenLaunch) {
+    console.log('[Main] Login launch detected (--hidden / wasOpenedAtLogin) — starting silently in tray')
+  }
+  if (!settings.tutorialCompleted && !hiddenLaunch) {
     // When onboarding is active (initial launch or reset tutorial), reset language to system default so onboarding always begins in System Default
     if (settings.language !== 'system') {
       settings = saveSettings({ language: 'system' })

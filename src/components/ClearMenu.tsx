@@ -91,7 +91,7 @@ export function ClearMenu({ items, disabled, panelOpen, onClear, onClearAll }: C
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        className="text-btn danger"
+        className={`text-btn${open ? ' active' : ''}`}
         onClick={() => {
           if (disabled) return
           playButtonClickSound()
@@ -99,9 +99,9 @@ export function ClearMenu({ items, disabled, panelOpen, onClear, onClearAll }: C
         }}
         disabled={disabled}
         title={t('item.clear')}
-        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 5 }}
       >
-        <TrashIcon width={14} height={14} />
+        <TrashIcon width={13} height={13} className="clear-btn-icon" />
         <span>{t('item.clear')}</span>
       </button>
 

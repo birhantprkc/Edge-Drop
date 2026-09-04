@@ -436,13 +436,13 @@
   height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: calc(12px * var(--font-scale, 1));
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.82);
+  gap: 5px;
+  font-size: calc(11.5px * var(--font-scale, 1));
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
   background: var(--bg-chip);
   border: none;
-  padding: 0 12px;
+  padding: 0 10px 0 9px;
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
@@ -450,9 +450,23 @@
   box-shadow: none;
   transition: background 0.18s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s ease;
 }
+.footer .text-btn .clear-btn-icon {
+  color: rgba(255, 255, 255, 0.75);
+  transition: color 0.18s ease;
+}
 .footer .text-btn:hover:not(:disabled) {
   background: #1c1c1c;
   color: #ffffff;
+}
+.footer .text-btn:hover:not(:disabled) .clear-btn-icon {
+  color: #ff6b6b;
+}
+.footer .text-btn.active:not(:disabled) {
+  background: #1c1c1c;
+  color: #ffffff;
+}
+.footer .text-btn.active:not(:disabled) .clear-btn-icon {
+  color: #ff6b6b;
 }
 .footer .text-btn:active:not(:disabled) {
   transform: scale(0.96);
@@ -463,11 +477,14 @@
   background: #141414;
 }
 .footer .text-btn.danger {
-  color: #ff6b6b;
+  color: rgba(255, 255, 255, 0.75);
 }
 .footer .text-btn.danger:hover:not(:disabled) {
-  color: #ff8585;
-  background: rgba(255, 70, 70, 0.16);
+  background: #1c1c1c;
+  color: #ffffff;
+}
+.footer .text-btn.danger:hover:not(:disabled) .clear-btn-icon {
+  color: #ff6b6b;
 }
 
 /* ----------------------------------------------------------------- */

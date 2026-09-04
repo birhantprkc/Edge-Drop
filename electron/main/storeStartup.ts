@@ -25,6 +25,9 @@ export const StartupTaskState = {
 } as const
 
 export function resolveStartupHelperPath(): string | null {
+  // Allow tests / enterprise layouts to override the helper location.
+  const override = process.env.EDGE_DROP_STARTUP_HELPER
+  if (override && existsSync(override)) return override
   const candidates: string[] = []
   if (typeof process.resourcesPath === 'string' && process.resourcesPath) {
     candidates.push(join(process.resourcesPath, 'startup', 'EdgeDropStartup.exe'))
@@ -35,6 +38,19 @@ export function resolveStartupHelperPath(): string | null {
     candidates.push(join(appPath, 'resources', 'startup', 'EdgeDropStartup.exe'))
   } catch {
     /* tests / app not ready */
+  }
+  // Packaged exe lives next to resources/: <install>/Edge-Drop.exe +
+  // <install>/resources/startup/EdgeDropStartup.exe (extraResources).
+  try {
+    const exePath = app.getPath('exe')
+    if (exePath) {
+      const { dirname } = require('node:path') as typeof import('node:path')
+      const exeDir = dirname(exePath)
+      candidates.push(join(exeDir, 'resources', 'startup', 'EdgeDropStartup.exe'))
+      candidates.push(join(exeDir, 'startup', 'EdgeDropStartup.exe'))
+    }
+  } catch {
+    /* ignore */
   }
   candidates.push(join(process.cwd(), 'resources', 'startup', 'EdgeDropStartup.exe'))
   return candidates.find((path) => path && existsSync(path)) ?? null
@@ -58,11 +74,28 @@ async function run(action: 'get' | 'enable' | 'disable'): Promise<number | null>
       encoding: 'utf8',
       timeout: 20000,
       windowsHide: true,
-      cwd: process.env.TEMP || process.cwd()
+      // Never run inside System32 or the package dir: the helper needs a
+      // writable cwd and must keep its AppX identity. TEMP is per-user and
+      // always writable, even under Store virtualization.
+      cwd: process.env.TEMP || process.env.TMP || process.cwd()
     })
     const stdout = typeof result === 'string' ? result : String((result as { stdout?: string }).stdout ?? '')
-    return parseState(stdout)
+    const parsed = parseState(stdout)
+    if (parsed === null) {
+      console.error(`[StoreStartup] helper returned unparsable output for ${action}:`, JSON.stringify(stdout))
+    }
+    return parsed
   } catch (err) {
+    // execFile rejects on non-zero exit (helper returns 21 on WinRT error).
+    // Try to salvage a numeric state from stdout/stderr before giving up so
+    // callers never fake ON from an error.
+    try {
+      const maybe = err as { stdout?: string; stderr?: string; code?: number }
+      const salvage = parseState(String(maybe?.stdout ?? ''))
+      if (salvage !== null) return salvage
+    } catch {
+      /* ignore */
+    }
     console.error('[StoreStartup] helper failed:', err)
     return null
   }
