@@ -74,7 +74,7 @@ function Glyph({ file, size = 22 }: { file: string; size?: number }) {
   )
 }
 
-export function EmojiPicker() {
+export function EmojiPicker({ active = true }: { active?: boolean }) {
   const { t } = useTranslation()
   const pasteEmoji = useStore((s) => s.pasteEmoji)
   const category = useStore((s) => s.emojiCategory)
@@ -132,13 +132,18 @@ export function EmojiPicker() {
   }, [category])
 
   useEffect(() => {
+    if (!active || !catalog) return
     const el = scrollerRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => setViewH(el.clientHeight))
+    const apply = () => {
+      const h = el.clientHeight
+      if (h > 0) setViewH(h)
+    }
+    const ro = new ResizeObserver(apply)
     ro.observe(el)
-    setViewH(el.clientHeight)
+    apply()
     return () => ro.disconnect()
-  }, [catalog])
+  }, [catalog, active])
 
   const items = useMemo(() => {
     if (!catalog) return [] as Array<{ key: string; file: string; entry: EmojiEntry }>

@@ -39,6 +39,11 @@ export function Panel() {
   const setQuery = useStore((s) => s.setQuery)
   const emojiOpen = useStore((s) => s.emojiOpen)
   const setEmojiOpen = useStore((s) => s.setEmojiOpen)
+  // Mount the picker on first open, then keep it. Tearing it (and ItemList)
+  // down on every smile click is what made the switch hitch.
+  const emojiMountedRef = useRef(false)
+  if (emojiOpen) emojiMountedRef.current = true
+  const emojiMounted = emojiMountedRef.current
   const edgeHintActive = useStore((s) => s.edgeHintActive)
 
   useEffect(() => {
@@ -361,14 +366,41 @@ export function Panel() {
                 </motion.div>
               ) : (
                 <motion.div
-                  key={emojiOpen ? 'emoji' : 'list'}
-                  initial={{ opacity: 0, y: emojiOpen ? 8 : -8 }}
+                  key="main"
+                  initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: emojiOpen ? -8 : 8 }}
+                  exit={{ opacity: 0, y: 8 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 32, mass: 0.5 }}
                   style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
                 >
-                  {emojiOpen ? <EmojiPicker /> : <ItemList />}
+                  <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplate: '1fr / 1fr', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        gridArea: '1 / 1 / 2 / 2',
+                        display: emojiOpen ? 'none' : 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        height: '100%',
+                        overflow: 'hidden'
+                      }}
+                      aria-hidden={emojiOpen}
+                    >
+                      <ItemList />
+                    </div>
+                    <div
+                      style={{
+                        gridArea: '1 / 1 / 2 / 2',
+                        display: emojiOpen ? 'flex' : 'none',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        height: '100%',
+                        overflow: 'hidden'
+                      }}
+                      aria-hidden={!emojiOpen}
+                    >
+                      {emojiMounted ? <EmojiPicker active={emojiOpen} /> : null}
+                    </div>
+                  </div>
                 <div className="footer" style={{ position: 'relative' }}>
                   {!emojiOpen && (
                     <>

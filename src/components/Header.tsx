@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useStore } from '../store/appStore'
 import { GearIcon, CloseIcon, InfoIcon, ClockIcon, TypeIcon, LinkIcon, ImageIcon, FilesIcon, EmojiSmileIcon } from './icons'
 import { playButtonClickSound } from '../lib/soundEffects'
+import { loadEmojiCatalog } from '../lib/emoji/load'
 
 import { useTranslation } from '../i18n'
 
@@ -117,6 +118,9 @@ export function Header() {
                   title={f.label}
                   aria-label={f.label}
                   aria-pressed={active}
+                  onPointerEnter={() => {
+                    if (f.id === 'emoji') void loadEmojiCatalog()
+                  }}
                   onClick={() => {
                     playButtonClickSound()
                     if (f.id === 'emoji') setEmojiOpen(true)
