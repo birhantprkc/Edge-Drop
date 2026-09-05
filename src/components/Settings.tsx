@@ -5,7 +5,6 @@ import type { DisplayInfo } from '../../shared/types'
 import { LiquidOctopusLoader } from './LiquidOctopusLoader'
 import { TickIndicatorIcon, CopyIndicatorIcon, SparkleIndicatorIcon } from './CopyIndicatorCurve'
 import { ChevronRightIcon, CloseIcon, LogOutIcon, StarIcon, GithubOctocatLogo } from './icons'
-import { ChangelogView } from './ChangelogView'
 import { HotkeyRecorder } from './HotkeyRecorder'
 import { playDialTickSound, playToggleSound, playButtonClickSound } from '../lib/soundEffects'
 import { useTranslation } from '../i18n'
@@ -29,7 +28,6 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
   const currentVersion = useStore((s) => s.currentVersion)
   const styleFlyoutOpen = useStore((s) => s.styleFlyoutOpen)
   const setStyleFlyoutOpen = useStore((s) => s.setStyleFlyoutOpen)
-  const settingsSubView = useStore((s) => s.settingsSubView)
   const setSliderActive = useStore((s) => s.setSliderActive)
 
   const lastTickVal = useRef<number>(settings.verticalOffset ?? 0.5)
@@ -225,7 +223,22 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
           </button>
         </div>
         <div className="app-version-footer">
-          {t('footer.version')} {currentVersion || '0.3.1'}
+          <span>{t('footer.version')} {currentVersion || '0.3.1'}</span>
+          <span className="version-separator">·</span>
+          <button
+            type="button"
+            className="version-changelog-link"
+            onClick={() => {
+              playButtonClickSound()
+              if (currentVersion) {
+                patch({ lastSeenChangelogVersion: currentVersion })
+              }
+              window.open('https://www.edgedrop.app/changelog', '_blank')
+            }}
+          >
+            <span>{t('header.whatsNew')}</span>
+            <span style={{ fontSize: 10, opacity: 0.7 }}>↗</span>
+          </button>
         </div>
       </div>
 
@@ -250,28 +263,10 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
   const tabLetterSpacing = maxTabLen > 13 ? '-0.03em' : maxTabLen > 10 ? '-0.015em' : '0'
 
   return (
-    <AnimatePresence mode="wait">
-      {settingsSubView === 'changelog' ? (
-        <motion.div
-          key="changelog-view"
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 36, mass: 0.6 }}
-          style={{ width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden' }}
-        >
-          <ChangelogView />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="main-settings"
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 12 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 36, mass: 0.6 }}
-          style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
-        >
-          {/* ── Stationary Fixed Header (Tab Selector) ────────────────── */}
+    <div
+      style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
+    >
+      {/* ── Stationary Fixed Header (Tab Selector) ────────────────── */}
           <div className="settings-fixed-header">
             <div className="settings-tab-bar">
               {TABS.map((tab) => {
@@ -1361,11 +1356,9 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
+        </div>
+      )
+    }
 
 function Toggle({
   checked,

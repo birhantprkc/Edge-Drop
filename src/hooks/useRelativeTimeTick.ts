@@ -1,35 +1,33 @@
 /**
- * Shared 30-second clock for relative-time labels ("5m ago").
+ * Shared clock for relative-time labels ("5m ago").
  *
- * WHY: every card used to start its own setInterval. With hundreds of cards
- * that meant N independent timers firing at unaligned moments — N scattered
- * render passes across every 30s window, plus timer churn on every
- * mount/unmount while scrolling. One refcounted interval serves all
- * subscribers, producing a single batched render pass per tick.
- *
- * BEHAVIOUR PARITY: the old per-card intervals only ran while the panel was
- * open (cards stay mounted when the blade is closed — they are merely hidden).
- * This module mirrors that exactly: the interval exists only while there is
- * at least one subscriber AND the shelf is open, so idle cost stays zero.
+ * One interval for the whole list (ItemList subscribes once and passes the
+ * tick into memoized cards). Idle: the timer runs only while the shelf is
+ * open. On open it fires immediately so labels are not stuck on "just now"
+ * from the previous visit — copying in another app closes the shelf before
+ * a long interval would ever elapse.
  */
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/appStore'
 
-const TICK_MS = 30000
+/** While the shelf is open, refresh often enough to leave "just now" (5s). */
+const TICK_MS = 5000
 
-let tick = 0
 let timer: number | undefined
 let subscribers = 0
 const listeners = new Set<() => void>()
 
 function emit(): void {
-  tick++
   for (const listener of listeners) listener()
 }
 
 function syncTimer(): void {
   const shouldRun = subscribers > 0 && useStore.getState().open
   if (shouldRun && timer === undefined) {
+    // Paint current ages immediately. Waiting for the first interval left
+    // labels stuck on "just now" because the shelf is almost never left
+    // open for a full tick — copying in another app closes it first.
+    emit()
     timer = window.setInterval(emit, TICK_MS)
   } else if (!shouldRun && timer !== undefined) {
     window.clearInterval(timer)
@@ -61,15 +59,15 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Subscribes the calling component to the shared clock. The component simply
- * re-renders on each tick so its `relativeTime(capturedAt)` label refreshes;
- * the returned value itself is intentionally unused.
+ * Subscribes the calling component to the shared clock. The returned tick
+ * must be passed into memoized cards so they re-render and recompute
+ * `relativeTime(capturedAt)`.
  */
 export function useRelativeTimeTick(): number {
-  const [, force] = useState(0)
+  const [value, setValue] = useState(0)
 
   useEffect(() => {
-    const listener = (): void => force((n) => n + 1)
+    const listener = (): void => setValue((n) => n + 1)
     listeners.add(listener)
     acquire()
     return () => {
@@ -78,5 +76,5 @@ export function useRelativeTimeTick(): number {
     }
   }, [])
 
-  return tick
+  return value
 }

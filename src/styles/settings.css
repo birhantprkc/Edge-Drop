@@ -580,12 +580,38 @@
 }
 
 .app-version-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.38);
   font-weight: 500;
   letter-spacing: 0.02em;
   margin-top: 4px;
   user-select: none;
+}
+
+.version-separator {
+  opacity: 0.35;
+}
+
+.version-changelog-link {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.15s ease;
+}
+
+.version-changelog-link:hover {
+  color: #ffffff;
 }
 
 /* Subtle Bottom Quit Button */

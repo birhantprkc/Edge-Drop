@@ -12,6 +12,7 @@ import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { useStore } from '../store/appStore'
 import { useFilteredItems } from '../hooks/useFilteredItems'
+import { useRelativeTimeTick } from '../hooks/useRelativeTimeTick'
 import { ClipboardItemCard } from './ClipboardItem'
 import { EmptyState } from './EmptyState'
 import { ChevronDownIcon, PinFillIcon } from './icons'
@@ -22,6 +23,7 @@ import { useTranslation } from '../i18n'
 export function ItemList() {
   const { t } = useTranslation()
   const { pinned, recent } = useFilteredItems()
+  const timeTick = useRelativeTimeTick()
   const query = useStore((s) => s.query)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -228,7 +230,7 @@ export function ItemList() {
                 </div>
               </div>
               {!pinnedCollapsed && pinned.map((it) => (
-                <ClipboardItemCard key={it.id} item={it} />
+                <ClipboardItemCard key={it.id} item={it} timeTick={timeTick} />
               ))}
             </section>
           )}
@@ -241,7 +243,7 @@ export function ItemList() {
                 </div>
               )}
               {recent.map((it) => (
-                <ClipboardItemCard key={it.id} item={it} />
+                <ClipboardItemCard key={it.id} item={it} timeTick={timeTick} />
               ))}
             </section>
           )}

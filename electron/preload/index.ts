@@ -203,7 +203,6 @@ const api = {
   mergeItems: (sourceId: string, targetId: string) => invoke('item:merge', sourceId, targetId),
   splitItem: (req: import('../../shared/types').DragRequest) => invoke('item:split', req),
   getDisplays: () => invoke('displays:list'),
-  getReleases: () => invoke('app:get-releases'),
   updateSettings: (patch: Partial<InvokeResult<'settings:update'>>) =>
     invoke('settings:update', patch),
   refreshLaunchAtLogin: () => invoke('startup:refresh'),

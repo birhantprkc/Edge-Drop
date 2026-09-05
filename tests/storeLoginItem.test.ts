@@ -72,8 +72,11 @@ vi.mock('node:child_process', async (importOriginal) => {
 
 import {
   applyLaunchAtLogin,
+  clearStartupApprovedBlock,
   formatGithubRunCommand,
+  isBlockedInStartupApproved,
   normalizeLoginPath,
+  readGithubLaunchAtLogin,
   reconcileLaunchAtLoginOnStartup
 } from '../electron/main/loginItems'
 import { syncLoginItemSettings } from '../electron/main/ipc'
@@ -428,7 +431,10 @@ describe('GitHub Run-key quoting and update heal', () => {
 
     expect(mocks.saveSettings).toHaveBeenCalledWith({ launchAtLogin: false })
     expect(next.launchAtLogin).toBe(false)
-    expect(mocks.execFileSync).not.toHaveBeenCalled()
+    const addCalls = mocks.execFileSync.mock.calls.filter(
+      (c) => ((c[1] as unknown) as string[])[0] === 'add'
+    )
+    expect(addCalls).toHaveLength(0)
     expect(mocks.setLoginItemSettings).not.toHaveBeenCalledWith(
       expect.objectContaining({ openAtLogin: true })
     )
@@ -459,6 +465,75 @@ describe('GitHub Run-key quoting and update heal', () => {
     }
     expect(mocks.setLoginItemSettings).not.toHaveBeenCalledWith(
       expect.objectContaining({ openAtLogin: true })
+    )
+  })
+
+  it('readGithubLaunchAtLogin reads spaced paths directly from registry even if Electron API fails', () => {
+    mocks.exePath = spacedExe
+    // Simulate Electron returning false negative for spaced path
+    mocks.getLoginItemSettings.mockReturnValue({
+      launchItems: [],
+      executableWillLaunchAtLogin: false
+    })
+    // Simulate reg query returning healthy quoted command
+    mocks.execFileSync.mockImplementation((bin: string, args: string[]) => {
+      if (bin === 'reg' && (args as string[])[0] === 'query') {
+        if ((args as string[])[1].includes('Run') && (args as string[])[3] === 'Edge-Drop') {
+          return `\r\n    Edge-Drop    REG_SZ    "${spacedExe}" --hidden\r\n`
+        }
+      }
+      throw new Error('not found')
+    })
+
+    const res = readGithubLaunchAtLogin()
+    expect(res.enabled).toBe(true)
+    expect(res.blockedByUser).toBe(false)
+    expect(res.ok).toBe(true)
+  })
+
+  it('0.3.1 bug recovery: restores launchAtLogin: true when unblocked Run key exists', async () => {
+    mocks.exePath = spacedExe
+    mocks.loadSettings.mockReturnValue({ launchAtLogin: false })
+    mocks.getLoginItemSettings.mockReturnValue({
+      launchItems: [],
+      executableWillLaunchAtLogin: false
+    })
+    // Simulate reg query finding the Run key
+    mocks.execFileSync.mockImplementation((bin: string, args: string[]) => {
+      if (bin === 'reg') {
+        const verb = (args as string[])[0]
+        if (verb === 'query') {
+          if ((args as string[])[1].includes('StartupApproved')) {
+            throw new Error('not found') // Not blocked
+          }
+          if ((args as string[])[1].includes('Run') && (args as string[])[3] === 'Edge-Drop') {
+            return `\r\n    Edge-Drop    REG_SZ    "${spacedExe}" --hidden\r\n`
+          }
+        }
+      }
+      return ''
+    })
+
+    const next = await reconcileLaunchAtLoginOnStartup()
+    expect(mocks.saveSettings).toHaveBeenCalledWith({ launchAtLogin: true })
+    expect(next.launchAtLogin).toBe(true)
+  })
+
+  it('StartupApproved block detection and unblocking', () => {
+    // 1. Blocked when odd byte
+    mocks.execFileSync.mockReturnValueOnce('\r\n    Edge-Drop    REG_BINARY    0300000053FD31D3D585DA01\r\n')
+    expect(isBlockedInStartupApproved('Edge-Drop')).toBe(true)
+
+    // 2. Unblocked when 02
+    mocks.execFileSync.mockReturnValueOnce('\r\n    Edge-Drop    REG_BINARY    0200000053FD31D3D585DA01\r\n')
+    expect(isBlockedInStartupApproved('Edge-Drop')).toBe(false)
+
+    // 3. Clear block issues reg delete
+    clearStartupApprovedBlock('Edge-Drop')
+    expect(mocks.execFileSync).toHaveBeenCalledWith(
+      'reg',
+      expect.arrayContaining(['delete', expect.stringContaining('StartupApproved'), '/v', 'Edge-Drop', '/f']),
+      expect.anything()
     )
   })
 

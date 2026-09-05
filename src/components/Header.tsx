@@ -11,8 +11,6 @@ export function Header() {
   const setSettingsOpen = useStore((s) => s.setSettingsOpen)
   const settingsOpen = useStore((s) => s.settingsOpen)
   const updateInfo = useStore((s) => s.updateInfo)
-  const settingsSubView = useStore((s) => s.settingsSubView)
-  const setSettingsSubView = useStore((s) => s.setSettingsSubView)
   const settings = useStore((s) => s.settings)
   const patchSettings = useStore((s) => s.patchSettings)
   const currentVersion = useStore((s) => s.currentVersion)
@@ -23,14 +21,10 @@ export function Header() {
   )
 
   const handleOpenChangelog = () => {
-    if (settingsSubView === 'changelog') {
-      setSettingsSubView('main')
-    } else {
-      setSettingsSubView('changelog')
-      if (currentVersion) {
-        patchSettings({ lastSeenChangelogVersion: currentVersion })
-      }
+    if (currentVersion) {
+      patchSettings({ lastSeenChangelogVersion: currentVersion })
     }
+    window.open('https://www.edgedrop.app/changelog', '_blank')
   }
 
   const typeFilter = useStore((s) => s.typeFilter)
@@ -61,7 +55,7 @@ export function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 0, minWidth: 0, flex: 1, overflow: 'hidden' }}>
         {settingsOpen ? (
           <span style={{ fontSize: 13, fontWeight: 600, color: '#8e8e93', letterSpacing: '0.01em', paddingLeft: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>
-            {settingsSubView === 'changelog' ? t('header.whatsNew') : t('header.settings')}
+            {t('header.settings')}
           </span>
         ) : (
           <div 
@@ -159,15 +153,15 @@ export function Header() {
         {settingsOpen && (
           <button
             type="button"
-            className={`icon-btn${settingsSubView === 'changelog' ? ' active' : ''}`}
-            title={settingsSubView === 'changelog' ? t('tabs.behaviour') : t('header.whatsNew')}
+            className="icon-btn"
+            title={t('header.whatsNew')}
             onClick={() => {
               playButtonClickSound()
               handleOpenChangelog()
             }}
             style={{
-              color: settingsSubView === 'changelog' ? '#ffffff' : 'rgba(255, 255, 255, 0.75)',
-              background: settingsSubView === 'changelog' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+              color: 'rgba(255, 255, 255, 0.75)',
+              background: 'transparent',
               border: 'none',
               boxShadow: 'none',
               flexShrink: 0,
@@ -209,7 +203,6 @@ export function Header() {
             playButtonClickSound()
             if (settingsOpen) {
               setSettingsOpen(false)
-              setSettingsSubView('main')
               return
             }
             const state = useStore.getState()

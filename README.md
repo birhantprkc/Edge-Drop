@@ -365,9 +365,7 @@ npm run build:store  # outputs an MSIX .appx for Microsoft Store submission
 - **HD Anti-Aliased Curved Edges**: GPU layer promotion (`transform: translateZ(0)`), `-webkit-background-clip: padding-box`, and smooth vector rasterization delivering 100% HD anti-aliased curved borders across all display scales.
 - **Tactile Micro-Interactions & Spring Motion**: Card hover 2px lift with ambient backlight glow, micro radial copy ripple effect, and smooth Framer Motion `layoutId` spring list reflow (`stiffness: 500`, `damping: 32`).
 - **Refined Obsidian Aesthetics & Multi-Layer Depth**: Dual-layer 3D glass hairline highlights (`inset 0 1px 0 rgba(255, 255, 255, 0.12)`) and dual typography hierarchy (monospaced *JetBrains Mono* metadata + *Inter/SF Pro* system title font stack).
-- **Ergonomic Card Action Bar & Safety Guard**: Re-ordered card actions (`Pin`, `Expand`, `Copy`, `Open Link`, `Divider`, `Delete`) with a physical safety hairline divider and 100% layout consistency across normal hover and preview mode.
-- **What's New Release History View**: Integrated in-app release notes timeline viewer (`ChangelogView.tsx`) connected to live GitHub Releases API with pure formatted text highlights and zero-lag offline fallbacks.
-- **Lucide-React Vector Icon Suite**: Powered by official `lucide-react` vector icons for crisp graphics across headers, item cards, and settings.
+- **What's New Web Changelog**: Direct link from the header and settings footer to the official release notes and changelog timeline at [edgedrop.app/changelog](https://www.edgedrop.app/changelog).
 - **Dynamic Preview Flyout**: Responsive layout for single files and multi-file collections with calibrated hover boundary tracking.
 - **Customizable Copy Indicator Styles**: Select from 4 vector copy indicators (**Edge-Drop Logo**, **Tick**, **Copy**, and **Sparkle**) in a 2x2 grid flyout selector.
 - **Universal Click-to-Paste**: Click any text snippet, image thumbnail, or file tile inside Preview Flyout to instantly paste into active desktop applications.
@@ -454,7 +452,7 @@ Edge-Drop/
 │     ├─ settings.ts       User config & startup registration
 │     └─ paths.ts          AppData + temp directory resolution
 ├─ src/                    React renderer
-│  ├─ components/          Panel, ItemList, ClipboardItem, SearchBar, Settings, HotkeyRecorder, ChangelogView, Icons
+│  ├─ components/          Panel, ItemList, ClipboardItem, SearchBar, Settings, HotkeyRecorder, Icons
 │  ├─ hooks/               useEdgeHover (hysteresis), useDragOut, useFilteredItems
 │  ├─ lib/                 soundEffects (Web Audio API), theme tokens, format helpers
 │  ├─ store/               Zustand appStore

@@ -21,7 +21,6 @@ import { MAX_STACK } from '../../shared/types'
 import type { DragRequest } from '../../shared/types'
 import { useStore } from '../store/appStore'
 import { useDragOut } from '../hooks/useDragOut'
-import { useRelativeTimeTick } from '../hooks/useRelativeTimeTick'
 import { itemRenderKey } from '../lib/itemSignature'
 import { basename, formatBytes, previewText, relativeTime, formatImageDisplayName } from '../lib/format'
 import { getFileKind } from '../lib/fileType'
@@ -35,6 +34,8 @@ import { useTranslation, t } from '../i18n'
 
 interface Props {
   item: ClipboardItemDto
+  /** Shared relative-time clock from ItemList; included in memo so labels age. */
+  timeTick?: number
 }
 
 /**
@@ -51,7 +52,7 @@ export function fileStreamUrl(filePath: string): string {
 /* Main item card                                                      */
 /* ------------------------------------------------------------------ */
 
-const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
+const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item, timeTick = 0 }, ref) => {
   const { t } = useTranslation()
   const copy = useStore.getState().copy
   const paste = useStore.getState().paste
@@ -69,11 +70,6 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
   const setExpandedFlag = useCallback((v: boolean) => {
     useStore.getState().setExpandedStackId(v ? item.id : null)
   }, [item.id])
-
-  // Shared clock: one refcounted interval refreshes every mounted card's
-  // relative-time label in a single batched pass (replaces the per-card
-  // setInterval, which scaled terribly across hundreds of cards).
-  useRelativeTimeTick()
 
   const isPreviewing = useStore((s) => s.previewItemId) === item.id
   const isBundle = (item.data.kind === 'files' && item.data.paths.length > 1) || item.data.kind === 'image-collection'
@@ -306,7 +302,7 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
             <div className="item-footer">
               <div className="meta">
                 <KindBadge item={item} />
-                <span>{relativeTime(item.capturedAt)}</span>
+                <span key={timeTick}>{relativeTime(item.capturedAt)}</span>
                 {item.hitCount > 1 && <span>· ×{item.hitCount}</span>}
                 {item.data.kind === 'image' && (
                   <span>
@@ -952,6 +948,7 @@ export const ClipboardItemCard = memo(
       prev.pinned === next.pinned &&
       prev.hitCount === next.hitCount &&
       prev.capturedAt === next.capturedAt &&
+      prevProps.timeTick === nextProps.timeTick &&
       itemRenderKey(prev) === itemRenderKey(next)
     )
   }

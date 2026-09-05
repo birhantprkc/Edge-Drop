@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store/appStore'
 import type { ClipboardItemDto, TypeFilter } from '../../shared/types'
-import { basename } from '../lib/format'
+import { basename, isImagePath } from '../lib/format'
 
 function matches(it: ClipboardItemDto, q: string): boolean {
   if (!q) return true
@@ -26,9 +26,19 @@ function matches(it: ClipboardItemDto, q: string): boolean {
   }
 }
 
-import { isImagePath } from '../lib/format'
+/**
+ * Explorer-copied photos are stored as `files` but belong in Images, not Files.
+ * Mixed stacks (photo + PDF) stay in Files only.
+ */
+export function isImageOnlyFileItem(it: ClipboardItemDto): boolean {
+  if (it.data.kind !== 'files') return false
+  const paths = it.data.paths
+  if (paths.length === 0) return false
+  if (it.data.entries?.some((en) => en.isDirectory)) return false
+  return paths.every((p) => isImagePath(p))
+}
 
-function matchesType(it: ClipboardItemDto, filter: TypeFilter): boolean {
+export function itemMatchesTypeFilter(it: ClipboardItemDto, filter: TypeFilter): boolean {
   if (filter === 'all') return true
   switch (filter) {
     case 'text':
@@ -37,10 +47,9 @@ function matchesType(it: ClipboardItemDto, filter: TypeFilter): boolean {
       return it.data.kind === 'text' && !!it.data.isUrl
     case 'images':
       if (it.data.kind === 'image' || it.data.kind === 'image-collection') return true
-      if (it.data.kind === 'files') return it.data.paths.some((p) => isImagePath(p))
-      return false
+      return isImageOnlyFileItem(it)
     case 'files':
-      return it.data.kind === 'files'
+      return it.data.kind === 'files' && !isImageOnlyFileItem(it)
   }
 }
 
@@ -79,7 +88,7 @@ export function useFilteredItems(): GroupedItems {
 
     for (const it of filteredByTutorial) {
       if (!matches(it, query.trim())) continue
-      if (!matchesType(it, typeFilter)) continue
+      if (!itemMatchesTypeFilter(it, typeFilter)) continue
       ;(it.pinned ? pinned : recent).push(it)
     }
     return { pinned, recent }

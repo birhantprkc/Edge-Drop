@@ -101,18 +101,6 @@ export interface InvokeMap {
   /** Reveal a file in native File Explorer / Finder. */
   'file:reveal': { args: [path: string]; result: boolean }
 
-  /** Get full release notes history from GitHub API (or cached/static fallback). */
-  'app:get-releases': {
-    args: []
-    result: Array<{
-      version: string
-      date: string
-      isLatest: boolean
-      summary: string
-      highlights: Array<{ title: string; description: string }>
-    }>
-  }
-
   /** Get the list of connected displays. */
   'displays:list': { args: []; result: import('./types').DisplayInfo[] }
 }

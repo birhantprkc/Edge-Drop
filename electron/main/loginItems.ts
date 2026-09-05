@@ -152,6 +152,54 @@ export function isGithubRunKeyHealthy(exePath?: string): boolean {
   }
 }
 
+export const STARTUP_APPROVED_KEY =
+  'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
+
+/**
+ * Check whether Windows Task Manager / Windows Settings has disabled this startup item.
+ * Windows stores startup item approval in StartupApproved\Run as a REG_BINARY.
+ * If the value is missing, the item is approved (enabled).
+ * If the value exists, the first byte indicates state:
+ * - 0x02: Enabled
+ * - 0x03 (or any odd number): Disabled by user
+ */
+export function isBlockedInStartupApproved(name: string): boolean {
+  if (process.platform !== 'win32') return false
+  try {
+    const out = execFileSync(
+      'reg',
+      ['query', STARTUP_APPROVED_KEY, '/v', name],
+      { windowsHide: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    ) as unknown as string
+    const m = String(out ?? '').match(/REG_BINARY\s+([0-9a-fA-F]+)/)
+    if (!m) return false
+    const hex = m[1]
+    if (!hex || hex.length < 2) return false
+    const firstByte = parseInt(hex.slice(0, 2), 16)
+    return firstByte !== 2 && (firstByte & 1) !== 0
+  } catch {
+    // Missing key or value means Windows defaults to enabled (not blocked).
+    return false
+  }
+}
+
+/**
+ * Clear any disabled flag in StartupApproved\Run so Windows allows the item to launch.
+ */
+export function clearStartupApprovedBlock(name: string): boolean {
+  if (process.platform !== 'win32') return true
+  try {
+    execFileSync(
+      'reg',
+      ['delete', STARTUP_APPROVED_KEY, '/v', name, '/f'],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    return true
+  } catch {
+    return true
+  }
+}
+
 function resultFromState(state: number | null, wantEnabled?: boolean): LaunchAtLoginResult {
   if (state === null) {
     if (wantEnabled === undefined) {
@@ -180,24 +228,58 @@ function collectGithubLoginNames(exePath: string): Set<string> {
   return names
 }
 
-function readGithubLaunchAtLogin(): LaunchAtLoginResult {
+export function readGithubLaunchAtLogin(): LaunchAtLoginResult {
   const exePath = app.getPath('exe')
-  const seen = app.getLoginItemSettings({
-    path: exePath,
-    args: ['--hidden']
-  })
-  const items = seen.launchItems ?? []
-  const ours = items.filter((item) => isOurLoginExe(item.path, exePath))
-  const anyEnabled = ours.some((item) => item.enabled)
-  const enabled = anyEnabled || !!seen.executableWillLaunchAtLogin
-  return {
-    enabled,
-    blockedByUser: ours.length > 0 && !anyEnabled && ours.some((item) => !item.enabled) && !seen.executableWillLaunchAtLogin,
-    ok: true
+
+  // Windows NSIS / portable builds: Read registry directly as authoritative source.
+  // Electron's getLoginItemSettings() fails to match paths containing spaces (e.g. "Renato Souza")
+  // and quoted arguments, returning false negatives that cause UI toggles to flap OFF.
+  if (process.platform === 'win32') {
+    let foundName: string | null = null
+    let rawCmd: string | null = null
+
+    for (const name of GITHUB_LOGIN_ITEM_NAMES) {
+      const cmd = getRawGithubRunCommand(name)
+      if (cmd && isOurLoginExe(cmd, exePath)) {
+        foundName = name
+        rawCmd = cmd
+        break
+      }
+    }
+
+    if (rawCmd && foundName) {
+      if (isBlockedInStartupApproved(foundName)) {
+        return { enabled: false, blockedByUser: true, ok: true }
+      }
+      return { enabled: true, blockedByUser: false, ok: true }
+    }
+  }
+
+  // Fallback to Electron's getLoginItemSettings:
+  // 1) On non-Windows platforms
+  // 2) In test environments where `reg` is mocked out or returns null but `getLoginItemSettings` is mocked
+  try {
+    const seen = app.getLoginItemSettings({
+      path: exePath,
+      args: ['--hidden']
+    })
+    const items = seen.launchItems ?? []
+    const ours = items.filter((item) => isOurLoginExe(item.path, exePath))
+    const anyEnabled = ours.some((item) => item.enabled)
+    const enabled = anyEnabled || !!seen.executableWillLaunchAtLogin
+    const blockedByUser =
+      ours.length > 0 && !anyEnabled && ours.some((item) => !item.enabled) && !seen.executableWillLaunchAtLogin
+    return {
+      enabled,
+      blockedByUser,
+      ok: true
+    }
+  } catch {
+    return { enabled: false, blockedByUser: false, ok: false }
   }
 }
 
-function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
+export function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
   const exePath = app.getPath('exe')
   const names = collectGithubLoginNames(exePath)
 
@@ -221,11 +303,16 @@ function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
         const raw = getRawGithubRunCommand(name)
         if (raw !== null && !isRunValueHealthy(raw, exePath)) {
           deleteRawGithubRunValue(name)
+          clearStartupApprovedBlock(name)
         }
       } catch {
         /* ignore */
       }
     }
+
+    // Clear any previous disable block in Windows StartupApproved for Edge-Drop
+    clearStartupApprovedBlock(CANONICAL_LOGIN_ITEM_NAME)
+
     try {
       app.setLoginItemSettings({
         openAtLogin: true,
@@ -237,23 +324,21 @@ function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
     } catch (err) {
       console.error('[LoginItems] setLoginItemSettings enable failed:', err)
     }
+
     // Electron writes an unquoted path. Re-write quoted so usernames with
     // spaces launch. This is the authoritative write — Electron's value is
     // only a compatibility shim from here on.
     const quotedOk = writeQuotedGithubRunCommand(exePath)
     const read = readGithubLaunchAtLogin()
     if (read.blockedByUser) return { ...read, ok: false }
+
     // Verify the on-disk value is actually healthy. When `reg` is blocked
     // (AV/policy) the Electron API can still report enabled while Windows
     // would fail to launch — treat that as not-ok so the UI can retry.
     try {
       if (!isGithubRunKeyHealthy(exePath)) {
-        // If we could not even write the key, report failure. If the key
-        // is missing only because `reg query` is mocked/unavailable in
-        // tests (returns null) but Electron reports enabled, preserve the
-        // historical optimistic success so first-run toggles don't bounce.
         const raw = getRawGithubRunCommand(CANONICAL_LOGIN_ITEM_NAME)
-        if (raw !== null) {
+        if (raw !== null && !isRunValueHealthy(raw, exePath)) {
           return { enabled: false, blockedByUser: false, ok: false }
         }
         if (!quotedOk) {
@@ -276,11 +361,18 @@ function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResult {
     } catch {
       /* ignore */
     }
+    try {
+      deleteRawGithubRunValue(name)
+      clearStartupApprovedBlock(name)
+    } catch {
+      /* ignore */
+    }
   }
   // Ensure the canonical raw value is gone so a later enable starts clean
   // and Task Manager never lists a disabled ghost. Best-effort only.
   try {
     deleteRawGithubRunValue(CANONICAL_LOGIN_ITEM_NAME)
+    clearStartupApprovedBlock(CANONICAL_LOGIN_ITEM_NAME)
   } catch {
     /* ignore */
   }
@@ -350,6 +442,20 @@ export async function reconcileLaunchAtLoginOnStartup(): Promise<Settings> {
   }
 
   if (settings.launchAtLogin === false && os.enabled) {
+    // GitHub recovery check:
+    // If user has settings=false, but the Run key exists for Edge-Drop and is NOT blocked by user:
+    // This happens when 0.3.1's false-negative poll bug erroneously saved launchAtLogin: false.
+    // Self-heal: restore settings to true and ensure key is properly quoted!
+    if (!isStoreBuild()) {
+      const exe = app.getPath('exe')
+      const raw = getRawGithubRunCommand(CANONICAL_LOGIN_ITEM_NAME)
+      if (raw && isOurLoginExe(raw, exe) && !isBlockedInStartupApproved(CANONICAL_LOGIN_ITEM_NAME)) {
+        console.log('[LoginItems] Recovering launchAtLogin from existing active Run key')
+        applyGithubLaunchAtLogin(true)
+        return saveSettings({ launchAtLogin: true })
+      }
+    }
+
     const applied = await applyLaunchAtLogin(false)
     if (applied.enabled !== settings.launchAtLogin) {
       return saveSettings({ launchAtLogin: applied.enabled })

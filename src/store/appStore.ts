@@ -38,9 +38,6 @@ interface AppState {
   setEmojiOpen: (open: boolean) => void
   emojiCategory: import('../lib/emoji/catalog').EmojiCategoryId
   setEmojiCategory: (cat: import('../lib/emoji/catalog').EmojiCategoryId) => void
-  /** Active view mode within settings ('main' | 'changelog'). */
-  settingsSubView: 'main' | 'changelog'
-  setSettingsSubView: (subView: 'main' | 'changelog') => void
   /** True while an OS file drag is hovering the panel (prevents premature close). */
   dragActive: boolean
   /**
@@ -144,7 +141,6 @@ export const useStore = create<AppState>((set, get) => ({
       set({
         emojiOpen: true,
         settingsOpen: false,
-        settingsSubView: 'main',
         previewItemId: null,
         previewItemRect: null,
         previewFlyoutRect: null,
@@ -156,8 +152,6 @@ export const useStore = create<AppState>((set, get) => ({
       set({ emojiOpen: false })
     }
   },
-  settingsSubView: 'main',
-  setSettingsSubView: (subView) => set({ settingsSubView: subView }),
   dragActive: false,
   expandedStackId: null,
   setExpandedStackId: (expandedStackId) => set({ expandedStackId }),
@@ -307,7 +301,6 @@ export const useStore = create<AppState>((set, get) => ({
   setSettingsOpen: (settingsOpen) => {
     set({
       settingsOpen,
-      settingsSubView: 'main',
       previewItemId: null,
       previewItemRect: null,
       previewFlyoutRect: null,
