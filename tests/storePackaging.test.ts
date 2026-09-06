@@ -188,6 +188,15 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(src).toContain('hasUpdatePrompt = !isStoreBuild &&')
   })
 
+  it('Settings renders Store review button on Store builds and GitHub star on GitHub builds', () => {
+    const src = read('src/components/Settings.tsx')
+    expect(src).toContain('isStoreBuild ? (')
+    expect(src).toContain('store-review-promo-btn')
+    expect(src).toContain('ms-windows-store://review/?ProductId=9P3JMHN9M4NR')
+    expect(src).toContain('github-promo-btn')
+    expect(src).toContain('https://github.com/Deepender25/Edge-Drop')
+  })
+
   it('updater module hard-returns on Store for every public entry', () => {
     const src = read('electron/main/updater.ts')
     expect(src).toMatch(/export function quitAndInstallUpdate[\s\S]*if \(isStoreBuild\(\)\) return/)

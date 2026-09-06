@@ -240,6 +240,7 @@ const masterEn = {
     supportPromo: 'Edge-Drop is 100% free & open-source. If it helps your daily workflow, consider supporting development to make it even better!',
     supportOnKofi: 'Support via Ko-fi / UPI',
     starOnGithub: 'Star on GitHub',
+    reviewOnStore: 'Review on Microsoft Store',
     githubPromo: 'Enjoying Edge-Drop? Show your support by starring the project on GitHub!',
     version: 'Version'
   }
@@ -676,6 +677,7 @@ let fileContent = `export interface TranslationKeys {
     supportPromo: string
     supportOnKofi: string
     starOnGithub: string
+    reviewOnStore?: string
     githubPromo: string
     version: string
   }

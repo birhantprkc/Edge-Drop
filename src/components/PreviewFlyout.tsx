@@ -602,17 +602,6 @@ function ExplorerButton({
   )
 }
 
-// Heuristic: if text looks like code, a path, or a log — use monospace. Otherwise system font.
-function looksLikeCode(text: string): boolean {
-  const firstLine = text.split('\n')[0] || ''
-  return (
-    firstLine.startsWith('/') ||
-    firstLine.startsWith('C:\\') ||
-    /[{}\[\]();=>]/.test(firstLine) ||
-    /^\s*(import|export|const|let|var|function|class|def|if|for)\b/.test(firstLine)
-  )
-}
-
 const SYS_FONT = 'var(--font-ui)'
 const CODE_FONT = 'var(--font-ui)'
 
@@ -691,7 +680,6 @@ function PreviewContent({
     const text: string = activeText.length > 20000
       ? activeText.slice(0, 20000) + `\n\n${t('flyout.contentTruncated')}`
       : activeText
-    const isCode = looksLikeCode(text)
     const isUrl = item.data.isUrl
 
     if (isUrl) {

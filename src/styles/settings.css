@@ -540,8 +540,9 @@
   transform: scale(0.98);
 }
 
-/* GitHub Star Promo Footer */
-.github-promo-btn {
+/* Secondary Action Promo Footer (GitHub Star on GitHub builds / Store Review on Store builds) */
+.github-promo-btn,
+.store-review-promo-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -561,17 +562,21 @@
   transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.github-promo-btn:hover {
+.github-promo-btn:hover,
+.store-review-promo-btn:hover {
   background: #252525;
   color: #ffffff;
   transform: translateY(-1px);
 }
 
-.github-promo-btn:active {
+.github-promo-btn:active,
+.store-review-promo-btn:active {
   transform: scale(0.98);
 }
 
-.github-promo-btn .github-octocat-icon {
+.github-promo-btn .github-octocat-icon,
+.store-review-promo-btn .store-logo-icon {
+  flex-shrink: 0;
   color: rgba(255, 255, 255, 0.9);
 }
 

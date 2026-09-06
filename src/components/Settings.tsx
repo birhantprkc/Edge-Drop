@@ -4,7 +4,7 @@ import { useStore } from '../store/appStore'
 import type { DisplayInfo } from '../../shared/types'
 import { LiquidOctopusLoader } from './LiquidOctopusLoader'
 import { TickIndicatorIcon, CopyIndicatorIcon, SparkleIndicatorIcon } from './CopyIndicatorCurve'
-import { ChevronRightIcon, CloseIcon, LogOutIcon, StarIcon, GithubOctocatLogo } from './icons'
+import { ChevronRightIcon, CloseIcon, LogOutIcon, StarIcon, GithubOctocatLogo, MicrosoftStoreLogo } from './icons'
 import { HotkeyRecorder } from './HotkeyRecorder'
 import { playDialTickSound, playToggleSound, playButtonClickSound } from '../lib/soundEffects'
 import { useTranslation } from '../i18n'
@@ -209,18 +209,33 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
             <span>{t('footer.supportOnKofi')}</span>
           </button>
 
-          {/* Secondary Action: GitHub Star */}
-          <button
-            className="github-promo-btn"
-            onClick={() => {
-              playButtonClickSound()
-              window.open('https://github.com/Deepender25/Edge-Drop', '_blank')
-            }}
-          >
-            <GithubOctocatLogo width={14} height={14} className="github-octocat-icon" />
-            <span>{t('footer.starOnGithub')}</span>
-            <StarIcon width={13} height={13} className="star-icon" fill="#fbbf24" stroke="#fbbf24" style={{ marginLeft: 2 }} />
-          </button>
+          {/* Secondary Action: GitHub Star on GitHub builds / Review on Microsoft Store for Store builds */}
+          {isStoreBuild ? (
+            <button
+              type="button"
+              className="store-review-promo-btn"
+              onClick={() => {
+                playButtonClickSound()
+                window.open('ms-windows-store://review/?ProductId=9P3JMHN9M4NR', '_blank')
+              }}
+            >
+              <MicrosoftStoreLogo width={14} height={14} className="store-logo-icon" />
+              <span>{t('footer.reviewOnStore')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="github-promo-btn"
+              onClick={() => {
+                playButtonClickSound()
+                window.open('https://github.com/Deepender25/Edge-Drop', '_blank')
+              }}
+            >
+              <GithubOctocatLogo width={14} height={14} className="github-octocat-icon" />
+              <span>{t('footer.starOnGithub')}</span>
+              <StarIcon width={13} height={13} className="star-icon" fill="#fbbf24" stroke="#fbbf24" style={{ marginLeft: 2 }} />
+            </button>
+          )}
         </div>
         <div className="app-version-footer">
           <span>{t('footer.version')} {currentVersion || '0.3.1'}</span>

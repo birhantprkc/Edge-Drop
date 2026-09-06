@@ -281,6 +281,7 @@ export interface TranslationKeys {
     supportPromo: string
     supportOnKofi: string
     starOnGithub: string
+    reviewOnStore?: string
     githubPromo: string
     version: string
   }
@@ -739,6 +740,7 @@ export const en: TranslationKeys = {
     "quitTitle": "Quit Edge-Drop",
     "quitDesc": "Close application and stop background process",
     "starOnGithub": "Star on GitHub",
+    "reviewOnStore": "Review on Microsoft Store",
     "githubPromo": "If you like Edge-Drop, please consider starring the project on GitHub!",
     "version": "Version",
     "supportPromo": "Edge-Drop is 100% free & open-source. If it helps your daily workflow, consider supporting development to make it even better!",
