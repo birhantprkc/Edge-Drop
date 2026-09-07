@@ -224,7 +224,11 @@ export function ItemList() {
                   <span className="pinned-count-badge">{pinned.length}</span>
                 </div>
                 <div className="pinned-header-right">
-                  <button className="act bundle-collapse-btn" type="button" aria-label="Toggle pinned section">
+                  <button
+                    className="act bundle-collapse-btn"
+                    type="button"
+                    aria-label={pinnedCollapsed ? t('item.expandPinned') : t('item.collapsePinned')}
+                  >
                     <ChevronDownIcon style={{ transform: pinnedCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.14s ease' }} />
                   </button>
                 </div>

@@ -37,7 +37,7 @@ export function ToastStack() {
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             )}
-            <span>{toastMsg.message}</span>
+            <span>{t(toastMsg.message)}</span>
           </motion.button>
         ))}
       </AnimatePresence>

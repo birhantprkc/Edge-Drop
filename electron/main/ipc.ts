@@ -307,7 +307,7 @@ export function registerIpc(): void {
       // Source content (e.g. the staged image file) is unrecoverable. Do not
       // promote a dead item to the top of history — tell the user instead.
       console.log('[IPC] item:copy aborted — source content unavailable')
-      toast('Original image no longer available', 'error')
+      toast('toast.imageUnavailable', 'error')
       setTimeout(() => {
         watcher.setPaused(loadSettings().incognito)
       }, 200)
@@ -342,14 +342,14 @@ export function registerIpc(): void {
       // Write real file references so pasting into Explorer copies the file,
       // not a path string.
       wrote = await writeFileListToClipboard(req.paths)
-      if (!wrote) toast('Original file no longer available', 'error')
+      if (!wrote) toast('toast.fileUnavailable', 'error')
     } else if (dto.data.kind === 'image-collection' && req.imageId) {
       const img = dto.data.images.find((i) => i.imageId === req.imageId)
       if (img) {
         // Single image from a collection: write full bitmap + file reference atomically.
         const src = getStore().resolveStoredImagePath(img.imageId, img.ext)
         wrote = await writeImageToClipboard(src)
-        if (!wrote) toast('Original image no longer available', 'error')
+        if (!wrote) toast('toast.imageUnavailable', 'error')
       }
     }
 
@@ -402,7 +402,7 @@ export function registerIpc(): void {
       (item.data.kind === 'image-collection' && !getStore().hasRecoverableCollectionImage(item.data.images))
     ) {
       console.log('[IPC] item:paste aborted — source image no longer available')
-      toast('Original image no longer available', 'error')
+      toast('toast.imageUnavailable', 'error')
       return false
     }
 
@@ -419,7 +419,7 @@ export function registerIpc(): void {
       const ok = await writeItemToClipboard(itemDataWithFullText, item.capturedAt)
       if (!ok) {
         // Extremely rare race: source vanished between pre-check and write.
-        toast('Original image no longer available', 'error')
+        toast('toast.imageUnavailable', 'error')
         return false
       }
       console.log('[IPC] item:paste wrote to clipboard, kind=', item.data.kind)
@@ -477,7 +477,7 @@ export function registerIpc(): void {
           // Single image from a collection: write full bitmap + file reference atomically.
           const src = getStore().resolveStoredImagePath(img.imageId, img.ext)
           wrote = await writeImageToClipboard(src)
-          if (!wrote) toast('Original image no longer available', 'error')
+          if (!wrote) toast('toast.imageUnavailable', 'error')
         }
       }
 
@@ -659,9 +659,9 @@ export function registerIpc(): void {
         next = saveSettings({ launchAtLogin: applied.enabled })
       }
       if (applied.blockedByUser && patch.launchAtLogin) {
-        toast('Windows blocked launch at login. Enable Edge-Drop in Settings → Apps → Startup.', 'info')
+        toast('toast.launchBlockedByWindows', 'info')
       } else if (!applied.ok) {
-        toast('Could not update launch at login.', 'error')
+        toast('toast.launchUpdateFailed', 'error')
       }
     }
     if (patch.hotZoneWidth !== undefined) {

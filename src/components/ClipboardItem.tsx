@@ -310,7 +310,7 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item, timeTick = 
                   </span>
                 )}
                 {item.data.kind === 'image' && <span>· {formatBytes(item.data.bytes)}</span>}
-                {copied && <span style={{ color: '#fff' }}>· copied</span>}
+                {copied && <span style={{ color: '#fff' }}>· {t('item.copied')}</span>}
               </div>
             </div>
           )}
@@ -853,7 +853,7 @@ function Preview({ item }: { item: ClipboardItemDto }) {
                   draggable={false}
                 />
               ) : (
-                <div className="preview">[image: {displayName}]</div>
+                <div className="preview">[{t('item.imagePlaceholder')}: {displayName}]</div>
               )}
             </div>
             {!isInternalHash && (

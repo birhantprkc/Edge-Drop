@@ -872,7 +872,7 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
                       <div className="setting-desc">{t('position.displayDesc')}</div>
                     </div>
                     <div className="setting-pills">
-                      {displays.length === 0 && <div className="pill disabled">Loading...</div>}
+                      {displays.length === 0 && <div className="pill disabled">{t('position.loadingDisplays')}</div>}
                       {displays.map((d) => {
                         const currentDisplay = displays.find((disp) => disp.isCurrent)
                         const activeDisplayId = currentDisplay
@@ -1329,7 +1329,7 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
                   {updateDownloaded
                     ? t('behaviour.restartToUpdateBelow')
                     : isDownloading
-                    ? (downloadPercent > 0 ? `Downloading... (${downloadPercent}%)` : t('behaviour.downloadingUpdate'))
+                    ? (downloadPercent > 0 ? t('behaviour.downloadingWithPercent', { percent: downloadPercent }) : t('behaviour.downloadingUpdate'))
                     : t('behaviour.newUpdateAvailableBelow')}
                 </span>
                 <span className="floating-update-arrow">↓</span>
