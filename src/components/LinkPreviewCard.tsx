@@ -19,8 +19,17 @@ export const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({
   // Top: Link SVG + Domain (e.g. 🔗 github.com)
   const domain = info.domain || 'link'
 
-  // Main: Clean, human-readable link target or title
-  const displayTitle = info.title || info.cleanUrl.replace(/^https?:\/\//, '')
+  // Clean URL without protocol (e.g. linkedin.com/in/gaurav-jha-hr)
+  const displayUrl = info.cleanUrl.replace(/^https?:\/\//, '')
+
+  // Main: Clean, human-readable title if distinct from domain and URL
+  const rawTitle = info.title?.trim()
+  const hasDistinctTitle = Boolean(
+    rawTitle &&
+    rawTitle.toLowerCase() !== displayUrl.toLowerCase() &&
+    rawTitle.toLowerCase() !== domain.toLowerCase()
+  )
+  const displayTitle = hasDistinctTitle ? rawTitle : displayUrl
 
   return (
     <div
@@ -35,6 +44,12 @@ export const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({
       <div className="link-card-body" title={info.cleanUrl}>
         {displayTitle}
       </div>
+
+      {hasDistinctTitle && (
+        <div className="link-card-url" title={info.cleanUrl}>
+          {displayUrl}
+        </div>
+      )}
     </div>
   )
 }
