@@ -54,7 +54,7 @@ dirEntry.writeUInt32LE(22, 12);
 const icoBuffer = Buffer.concat([header, dirEntry, appPngBuffer]);
 writeFileSync('resources/icon.ico', icoBuffer);
 
-// 2. Tray Icon — pure white logo, no background, fills the 256x256 canvas
+// 2. Tray Icon (White for dark taskbar) — pure white logo, no background, fills the 256x256 canvas
 // Removed internal padding to make it as large as possible in the system tray
 const trayIconSvg = `<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <svg x="0" y="0" width="256" height="256" viewBox="378 387 1072 1072" preserveAspectRatio="xMidYMid meet">
@@ -67,4 +67,18 @@ const trayResvg = new Resvg(trayIconSvg, { fitTo: { mode: 'width', value: 256 } 
 const trayPngBuffer = trayResvg.render().asPng();
 writeFileSync('resources/tray.png', trayPngBuffer);
 
+// 3. Tray Icon (Dark for light taskbar) — dark charcoal (#1A1A1A) logo for Windows Light Theme
+const darkLogo = rawLogo.replace(/fill="#FFFFFF"/gi, 'fill="#1A1A1A"');
+const trayDarkIconSvg = `<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <svg x="0" y="0" width="256" height="256" viewBox="378 387 1072 1072" preserveAspectRatio="xMidYMid meet">
+    ${darkLogo.replace(/<svg[^>]*>/, '').replace('</svg>', '')}
+  </svg>
+</svg>`;
+
+console.log('Rendering Tray Icon (dark charcoal for light theme)...');
+const trayDarkResvg = new Resvg(trayDarkIconSvg, { fitTo: { mode: 'width', value: 256 } });
+const trayDarkPngBuffer = trayDarkResvg.render().asPng();
+writeFileSync('resources/tray-dark.png', trayDarkPngBuffer);
+
 console.log('Icons successfully generated!');
+

@@ -35,8 +35,10 @@ export const PATHS = {
   tempDir: () => join(root(), 'temp'),
   /** App icon (used by window + native drag image). */
   icon: () => join(app.getAppPath(), 'resources', 'icon.png'),
-  /** Tray icon (pure white logo without background). */
-  trayIcon: () => join(app.getAppPath(), 'resources', 'tray.png')
+  /** Tray icon (pure white logo without background for dark taskbar). */
+  trayIcon: () => join(app.getAppPath(), 'resources', 'tray.png'),
+  /** Tray icon (dark charcoal logo without background for light taskbar). */
+  trayDarkIcon: () => join(app.getAppPath(), 'resources', 'tray-dark.png')
 } as const
 
 /**

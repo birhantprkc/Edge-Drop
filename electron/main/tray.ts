@@ -6,8 +6,9 @@
  * state (checkmarks) is rebuilt every time the menu opens so it always reflects
  * current settings.
  */
-import { Menu, Tray, app, nativeImage, Notification, screen } from 'electron'
+import { Menu, Tray, app, nativeImage, Notification, screen, nativeTheme } from 'electron'
 import { existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { PATHS } from '../store/paths'
 import { loadSettings, saveSettings } from '../store/settings'
 import { getMainWindow, setVisible, repositionWindow, getDisplayListOptions, registerWindowRepositionListener, popUpAndRetract } from './window'
@@ -16,6 +17,7 @@ import { pushState } from './state'
 import { TRANSLATIONS, en } from '../../src/i18n/translations'
 
 let tray: Tray | null = null
+let themeListenerRegistered = false
 
 /** Build a tiny monochrome tray icon if no on-disk icon exists (first run). */
 function fallbackIcon(): Electron.NativeImage {
@@ -29,21 +31,82 @@ function fallbackIcon(): Electron.NativeImage {
   return nativeImage.createFromBuffer(png).resize({ width: 16, height: 16 })
 }
 
-export function createTray(): Tray {
-  const iconPath = PATHS.trayIcon()
-  let image: Electron.NativeImage
+/**
+ * Detects whether the Windows taskbar/system tray is using light mode.
+ *
+ * Windows 10/11 allows a "Custom" theme where the taskbar (Windows mode)
+ * can be Light while apps are Dark (or vice versa).
+ * The authoritative source is the registry key `SystemUsesLightTheme`:
+ *   1 = Light taskbar (requires dark tray icon)
+ *   0 = Dark taskbar (requires white tray icon)
+ *
+ * Falls back to `!nativeTheme.shouldUseDarkColors` on non-Windows or when unreadable.
+ */
+export function isTaskbarLightTheme(): boolean {
+  if (process.platform === 'win32') {
+    try {
+      const out = execFileSync(
+        'reg',
+        ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize', '/v', 'SystemUsesLightTheme'],
+        { windowsHide: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+      )
+      const text = String(out ?? '')
+      const m = text.match(/SystemUsesLightTheme\s+REG_DWORD\s+(0x[0-9a-fA-F]+|\d+)/i)
+      if (m && m[1]) {
+        const val = parseInt(m[1], 16)
+        return val === 1
+      }
+    } catch {
+      // Best-effort registry check; fall back to nativeTheme below.
+    }
+  }
+  return !nativeTheme.shouldUseDarkColors
+}
 
-  if (existsSync(iconPath)) {
+/** Resolves the appropriate 32x32 tray icon based on the current taskbar theme. */
+export function getTrayImage(): Electron.NativeImage {
+  const isLight = isTaskbarLightTheme()
+  const preferredPath = isLight ? PATHS.trayDarkIcon() : PATHS.trayIcon()
+  const fallbackPath = PATHS.trayIcon()
+
+  const resolvedPath = existsSync(preferredPath)
+    ? preferredPath
+    : (existsSync(fallbackPath) ? fallbackPath : null)
+
+  if (resolvedPath) {
     // Load and resize to exactly 32x32. Windows system tray renders icons at 16x16
     // logical pixels but uses 32x32 physical pixels on 2x DPI displays.
     // Using a single 32x32 image with no scaleFactor trickery is the most reliable
     // approach — the OS scales it automatically.
-    image = nativeImage.createFromPath(iconPath).resize({ width: 32, height: 32, quality: 'best' })
-  } else {
-    image = fallbackIcon()
+    return nativeImage.createFromPath(resolvedPath).resize({ width: 32, height: 32, quality: 'best' })
   }
+
+  return fallbackIcon()
+}
+
+/** Dynamically switches tray icon image when system/taskbar theme updates. */
+export function updateTrayIcon(): void {
+  if (!tray || tray.isDestroyed()) return
+  try {
+    const image = getTrayImage()
+    tray.setImage(image)
+  } catch (err) {
+    console.error('[Tray] Failed to update tray icon image:', err)
+  }
+}
+
+export function createTray(): Tray {
+  const image = getTrayImage()
   tray = new Tray(image)
   tray.setToolTip('Edge-Drop')
+
+  // Register system theme change listener once
+  if (!themeListenerRegistered) {
+    themeListenerRegistered = true
+    nativeTheme.on('updated', () => {
+      updateTrayIcon()
+    })
+  }
 
   // Show welcome notification on first run
   if (!existsSync(PATHS.indexFile())) {
@@ -190,6 +253,7 @@ function getTrayText(settingsLang: string | undefined, key: keyof typeof en['tra
   }
 
   tray.on('click', () => {
+    updateTrayIcon()
     console.log('[Main] Tray icon left-clicked')
     const win = getMainWindow()
     if (!win) return
@@ -199,6 +263,7 @@ function getTrayText(settingsLang: string | undefined, key: keyof typeof en['tra
 
   // Rebuild menu dynamically right before showing to ensure displays & checkmarks are 100% current.
   tray.on('right-click', () => {
+    updateTrayIcon()
     rebuild()
     tray?.popUpContextMenu()
   })
