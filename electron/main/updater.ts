@@ -207,6 +207,17 @@ export function initAutoUpdater(): void {
       console.log('[AutoUpdater] App is up to date. Latest release:', info.version, 'Current:', app.getVersion())
     })
 
+    autoUpdater.on('download-progress', (progressObj: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => {
+      const percent = Math.min(100, Math.max(0, Math.round(progressObj.percent || 0)))
+      console.log(`[AutoUpdater] Download progress: ${percent}%`)
+      pushState.updateProgress({
+        percent,
+        bytesPerSecond: progressObj.bytesPerSecond,
+        transferred: progressObj.transferred,
+        total: progressObj.total
+      })
+    })
+
     autoUpdater.on('update-downloaded', (info: { version: string }) => {
       console.log('[AutoUpdater] Update downloaded and ready to install:', info.version)
       pushState.updateDownloaded({ version: info.version })

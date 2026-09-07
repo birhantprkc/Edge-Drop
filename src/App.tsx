@@ -77,6 +77,9 @@ export default function App() {
     const offUpdateAvailable = edge.onUpdateAvailable((info) => {
       useStore.getState().setUpdateAvailable(info)
     })
+    const offUpdateProgress = edge.onUpdateProgress((progress) => {
+      useStore.getState().setUpdateProgress(progress)
+    })
     const offUpdateDownloaded = edge.onUpdateDownloaded((info) => {
       useStore.getState().setUpdateDownloaded(info)
     })
@@ -92,6 +95,7 @@ export default function App() {
       offOpenSettings()
       offTutorialStep()
       offUpdateAvailable()
+      offUpdateProgress()
       offUpdateDownloaded()
       offCopyFlare()
     }

@@ -20,6 +20,13 @@ export interface ToastMsg {
   tone: 'info' | 'error'
 }
 
+export interface UpdateProgress {
+  percent: number
+  bytesPerSecond?: number
+  transferred?: number
+  total?: number
+}
+
 interface AppState {
   items: ClipboardItemDto[]
   settings: Settings
@@ -54,7 +61,12 @@ interface AppState {
   tutorialStep: number
   currentVersion: string
   isStoreBuild: boolean
-  updateInfo: { hasUpdate: boolean; latestVersion: string; downloaded: boolean } | null
+  updateInfo: {
+    hasUpdate: boolean
+    latestVersion: string
+    downloaded: boolean
+    downloadProgress?: UpdateProgress
+  } | null
   /** Item ID currently being previewed in the flyout. */
   previewItemId: string | null
   previewItemRect: { y: number; height: number } | null
@@ -78,6 +90,7 @@ interface AppState {
   startManualDownload: () => Promise<void>
   resetManualCheck: () => void
   setUpdateAvailable: (info: { version: string }) => void
+  setUpdateProgress: (progress: UpdateProgress) => void
   setUpdateDownloaded: (info: { version: string }) => void
   dismissUpdate: () => void
   installUpdate: () => Promise<void>
@@ -248,12 +261,34 @@ export const useStore = create<AppState>((set, get) => ({
     })
   },
 
+  setUpdateProgress: (progress) => {
+    const current = get().updateInfo
+    if (!current) {
+      set({
+        updateInfo: {
+          hasUpdate: true,
+          latestVersion: '',
+          downloaded: false,
+          downloadProgress: progress
+        }
+      })
+      return
+    }
+    set({
+      updateInfo: {
+        ...current,
+        downloadProgress: progress
+      }
+    })
+  },
+
   setUpdateDownloaded: (info) => {
     set({
       updateInfo: {
         hasUpdate: true,
         latestVersion: info.version,
-        downloaded: true
+        downloaded: true,
+        downloadProgress: undefined
       },
       manualCheckState: { status: 'idle' }
     })

@@ -85,6 +85,9 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
   const handleManualCheck = () => useStore.getState().startManualCheck()
   const handleStartDownload = () => useStore.getState().startManualDownload()
 
+  const isDownloading = checkState.status === 'downloading' || (!updateDownloaded && (settings.autoUpdates ?? true) && !!updateInfo?.hasUpdate)
+  const downloadPercent = updateInfo?.downloadProgress?.percent ?? 0
+
   // ── Tab state & Independent Scroll Memory per section ──────────────────────
   const [activeTab, setActiveTab] = useState<SettingsTab>('behaviour')
   const scrollListRef = useRef<HTMLDivElement>(null)
@@ -124,45 +127,75 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
     }
   }, [activeTab])
 
-  // ── Off-screen Update Banner Visibility Tracking ─────────────────────────────
+  // ── Update banner ref & status tracking ────────────────────────────────────
   const updateBannerRef = useRef<HTMLDivElement | null>(null)
-  const [isUpdateBannerVisible, setIsUpdateBannerVisible] = useState(true)
+  const hasUpdatePrompt = !isStoreBuild && (!autoUpdates || !!(updateDownloaded || isDownloading || checkState.status === 'available'))
 
-  const hasUpdatePrompt = !isStoreBuild && !!(updateDownloaded || ((settings.autoUpdates ?? true) && updateInfo?.hasUpdate) || checkState.status === 'available')
-  const showScrollUpdateBadge = hasUpdatePrompt && activeTab === 'behaviour' && !isUpdateBannerVisible
+  // ── Floating Scroll Indicator Badge for Off-Screen Update Banner ────────────
+  const [isUpdateCardVisible, setIsUpdateCardVisible] = useState(false)
+  const hasActiveUpdate = !isStoreBuild && !!(updateDownloaded || isDownloading || checkState.status === 'available')
+  const showScrollUpdateBadge = hasActiveUpdate && !isUpdateCardVisible
 
   useEffect(() => {
-    if (isStoreBuild || activeTab !== 'behaviour' || !hasUpdatePrompt) {
-      setIsUpdateBannerVisible(true)
+    if (!hasActiveUpdate) {
+      setIsUpdateCardVisible(false)
       return
     }
 
-    const container = scrollListRef.current
-    if (!container) return
+    if (activeTab !== 'behaviour') {
+      setIsUpdateCardVisible(false)
+      return
+    }
+
+    const scrollEl = scrollListRef.current
+    const bannerEl = updateBannerRef.current
+    if (!scrollEl || !bannerEl) {
+      setIsUpdateCardVisible(false)
+      return
+    }
 
     const checkVisibility = () => {
-      const el = updateBannerRef.current
-      if (!el) {
-        setIsUpdateBannerVisible(true)
-        return
-      }
-      const elRect = el.getBoundingClientRect()
-      const containerRect = container.getBoundingClientRect()
-      // Element is visible if its top and bottom are inside container's view
-      const visible = elRect.top >= containerRect.top - 10 && elRect.bottom <= containerRect.bottom + 20
-      setIsUpdateBannerVisible(visible)
+      const scrollRect = scrollEl.getBoundingClientRect()
+      const bannerRect = bannerEl.getBoundingClientRect()
+      const isVisible = bannerRect.top < scrollRect.bottom && bannerRect.bottom > scrollRect.top
+      setIsUpdateCardVisible(isVisible)
     }
 
     checkVisibility()
-    // Small delay to allow DOM render on tab switch
-    const timer = setTimeout(checkVisibility, 60)
 
-    container.addEventListener('scroll', checkVisibility, { passive: true })
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        setIsUpdateCardVisible(entry?.isIntersecting ?? false)
+      },
+      {
+        root: scrollEl,
+        threshold: 0.05
+      }
+    )
+
+    observer.observe(bannerEl)
+    scrollEl.addEventListener('scroll', checkVisibility, { passive: true })
+
     return () => {
-      clearTimeout(timer)
-      container.removeEventListener('scroll', checkVisibility)
+      observer.disconnect()
+      scrollEl.removeEventListener('scroll', checkVisibility)
     }
-  }, [isStoreBuild, activeTab, hasUpdatePrompt, updateDownloaded, updateInfo, checkState.status])
+  }, [activeTab, hasActiveUpdate, hasUpdatePrompt, isDownloading, updateDownloaded, checkState.status])
+
+  const scrollToUpdateCard = () => {
+    playButtonClickSound()
+    if (activeTab !== 'behaviour') {
+      handleTabSwitch('behaviour')
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          updateBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }, 60)
+      })
+    } else {
+      updateBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }
 
   // ── Persistent footer shared across all tabs ───────────────────────────
   const PersistentFooter = (
@@ -478,225 +511,6 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
                           onChange={(v) => patch({ autoUpdates: v })}
                         />
                       </div>
-
-                      {/* ── UPDATE CONTROL / MANUAL CHECK BANNER ── */}
-                      <div ref={updateBannerRef}>
-                        {updateDownloaded ? (
-                          <div style={{
-                            marginTop: 12,
-                            background: 'rgba(76, 175, 80, 0.08)',
-                            border: '1px solid rgba(76, 175, 80, 0.3)',
-                            borderRadius: 12,
-                            padding: '14px 16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 10,
-                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
-                          }}>
-                            <div>
-                              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#ffffff', letterSpacing: '-0.01em' }}>
-                                {t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}
-                              </div>
-                              <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.7)', marginTop: 3, lineHeight: 1.45 }}>
-                                {t('behaviour.updateReadyDesc')}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => window.edge.installUpdate()}
-                              style={{
-                                width: '100%',
-                                background: '#ffffff',
-                                color: '#000000',
-                                border: 'none',
-                                borderRadius: 9,
-                                padding: '8px 16px',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                boxShadow: '0 2px 8px rgba(255, 255, 255, 0.15)',
-                                transition: 'opacity 0.15s ease'
-                              }}
-                              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92' }}
-                              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                            >
-                              {t('behaviour.restartToUpdate')}
-                            </button>
-                          </div>
-                        ) : !autoUpdates ? (
-                          <div style={{
-                            marginTop: 12,
-                            background: 'rgba(255, 255, 255, 0.035)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            borderRadius: 12,
-                            padding: '14px 16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 12,
-                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.18)'
-                          }}>
-                            {checkState.status === 'idle' && (
-                              <button
-                                onClick={handleManualCheck}
-                                style={{
-                                  width: '100%',
-                                  background: 'rgba(255, 255, 255, 0.07)',
-                                  color: '#ffffff',
-                                  border: '1px solid rgba(255, 255, 255, 0.14)',
-                                  borderRadius: 10,
-                                  padding: '9px 16px',
-                                  fontSize: 12.5,
-                                  fontWeight: 500,
-                                  cursor: 'pointer',
-                                  textAlign: 'center',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
-                                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
-                                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)'
-                                }}
-                              >
-                                {t('behaviour.checkForUpdates')}
-                              </button>
-                            )}
-
-                            {checkState.status === 'checking' && (
-                              <div style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '6px 0' }}>
-                                <motion.span
-                                  animate={{ rotate: 360 }}
-                                  transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                                  style={{
-                                    display: 'inline-block',
-                                    width: 13,
-                                    height: 13,
-                                    border: '2px solid rgba(255, 255, 255, 0.25)',
-                                    borderTopColor: '#ffffff',
-                                    borderRadius: '50%'
-                                  }}
-                                />
-                                {t('behaviour.checkingForUpdates')}
-                              </div>
-                            )}
-
-                            {checkState.status === 'up-to-date' && (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                <div style={{ fontSize: 12.5, color: '#4caf50', fontWeight: 500 }}>
-                                  {t('behaviour.isUpToDate')} (v{currentVersion || '0.2.1'})
-                                </div>
-                                <button
-                                  onClick={handleManualCheck}
-                                  style={{
-                                    background: 'transparent',
-                                    color: 'rgba(255, 255, 255, 0.65)',
-                                    border: 'none',
-                                    fontSize: 11.5,
-                                    cursor: 'pointer',
-                                    textDecoration: 'underline'
-                                  }}
-                                >
-                                  {t('behaviour.checkAgain')}
-                                </button>
-                              </div>
-                            )}
-
-                            {checkState.status === 'available' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div>
-                                  <div style={{ fontSize: 13.5, fontWeight: 600, color: '#ffffff', letterSpacing: '-0.01em' }}>
-                                    {t('behaviour.updateAvailableTitle', { version: checkState.version || '' })}
-                                  </div>
-                                  <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.65)', marginTop: 3, lineHeight: 1.45 }}>
-                                    {t('behaviour.updateAvailableDesc')}
-                                  </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-                                  <button
-                                    onClick={handleStartDownload}
-                                    style={{
-                                      background: '#ffffff',
-                                      color: '#000000',
-                                      border: 'none',
-                                      borderRadius: 9,
-                                      padding: '7px 16px',
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      boxShadow: '0 2px 8px rgba(255, 255, 255, 0.15)',
-                                      transition: 'transform 0.15s ease, opacity 0.15s ease'
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92' }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                                  >
-                                    {t('behaviour.downloadAndUpdate')}
-                                  </button>
-                                  <button
-                                    onClick={() => useStore.getState().dismissUpdate()}
-                                    style={{
-                                      background: 'rgba(255, 255, 255, 0.08)',
-                                      color: 'rgba(255, 255, 255, 0.8)',
-                                      border: '1px solid rgba(255, 255, 255, 0.14)',
-                                      borderRadius: 9,
-                                      padding: '7px 14px',
-                                      fontSize: 12,
-                                      fontWeight: 500,
-                                      cursor: 'pointer',
-                                      transition: 'background 0.2s ease'
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.14)' }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
-                                  >
-                                    {t('behaviour.skip')}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                            {checkState.status === 'downloading' && (
-                              <div style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.9)', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
-                                <motion.span
-                                  animate={{ rotate: 360 }}
-                                  transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                                  style={{
-                                    display: 'inline-block',
-                                    width: 13,
-                                    height: 13,
-                                    border: '2px solid rgba(255, 255, 255, 0.25)',
-                                    borderTopColor: '#ffffff',
-                                    borderRadius: '50%'
-                                  }}
-                                />
-                                {t('behaviour.downloadingUpdate')}
-                              </div>
-                            )}
-
-                            {checkState.status === 'error' && (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                <div style={{ fontSize: 12, color: '#f44336' }}>
-                                  ⚠️ {checkState.error || t('behaviour.updateCheckFailed')}
-                                </div>
-                                <button
-                                  onClick={handleManualCheck}
-                                  style={{
-                                    background: 'rgba(255, 255, 255, 0.12)',
-                                    color: '#ffffff',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                                    borderRadius: 7,
-                                    padding: '4px 10px',
-                                    fontSize: 11.5,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  {t('behaviour.tryAgain')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
                     </>
                   )}
 
@@ -750,6 +564,176 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
                       ))}
                     </div>
                   </div>
+
+                  {/* ── Update Control (Shown at bottom above Community) ── */}
+                  {hasUpdatePrompt && (
+                    <>
+                      <div className="setting-divider" style={{ marginTop: 20 }} />
+                      <div className="manual-update-section" ref={updateBannerRef}>
+                        <div className="manual-update-card">
+                          {updateDownloaded ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">
+                                  <span className="manual-update-dot ready" />
+                                  <span>{t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}</span>
+                                </div>
+                                <div className="manual-update-desc">
+                                  {t('behaviour.updateReadyDesc')}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill primary"
+                                onClick={() => {
+                                  playButtonClickSound()
+                                  void window.edge.installUpdate()
+                                }}
+                              >
+                                {t('behaviour.restartToUpdate')}
+                              </button>
+                            </>
+                          ) : isDownloading ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">
+                                  <span className="manual-update-dot ready" />
+                                  <span>
+                                    {updateInfo?.latestVersion
+                                      ? `Update v${updateInfo.latestVersion} Available`
+                                      : t('behaviour.updateAvailableTitle', { version: '' })}
+                                  </span>
+                                </div>
+                                <div className="manual-update-desc">
+                                  {t('behaviour.downloadingUpdate')}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill primary"
+                                disabled
+                              >
+                                {downloadPercent > 0
+                                  ? `Downloading... (${downloadPercent}%)`
+                                  : 'Downloading update...'}
+                              </button>
+                            </>
+                          ) : checkState.status === 'available' ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">
+                                  <span className="manual-update-dot ready" />
+                                  <span>{t('behaviour.updateAvailableTitle', { version: checkState.version || '' })}</span>
+                                </div>
+                                <div className="manual-update-desc">
+                                  {t('behaviour.updateAvailableDesc')}
+                                </div>
+                              </div>
+                              <div className="manual-update-actions">
+                                <button
+                                  type="button"
+                                  className="manual-update-pill primary"
+                                  onClick={() => {
+                                    playButtonClickSound()
+                                    handleStartDownload()
+                                  }}
+                                >
+                                  {t('behaviour.downloadAndUpdate')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="manual-update-pill outline"
+                                  onClick={() => {
+                                    playButtonClickSound()
+                                    useStore.getState().dismissUpdate()
+                                  }}
+                                >
+                                  {t('behaviour.skip')}
+                                </button>
+                              </div>
+                            </>
+                          ) : checkState.status === 'checking' ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">{t('behaviour.checkForUpdates')}</div>
+                                <div className="manual-update-desc">{t('behaviour.checkingForUpdates')}</div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill outline"
+                                disabled
+                              >
+                                <span className="manual-update-dot checking" />
+                                <span>{t('behaviour.checkingForUpdates')}</span>
+                              </button>
+                            </>
+                          ) : checkState.status === 'up-to-date' ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">
+                                  <span className="manual-update-dot ready" />
+                                  <span>{t('behaviour.isUpToDate')}</span>
+                                </div>
+                                <div className="manual-update-desc">
+                                  {t('footer.version')} {currentVersion || '0.3.1'}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill outline"
+                                onClick={() => {
+                                  playButtonClickSound()
+                                  handleManualCheck()
+                                }}
+                              >
+                                {t('behaviour.checkAgain')}
+                              </button>
+                            </>
+                          ) : checkState.status === 'error' ? (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title error">
+                                  {t('behaviour.updateCheckFailed')}
+                                </div>
+                                <div className="manual-update-desc error">
+                                  {checkState.error || t('behaviour.updateCheckFailed')}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill outline"
+                                onClick={() => {
+                                  playButtonClickSound()
+                                  handleManualCheck()
+                                }}
+                              >
+                                {t('behaviour.tryAgain')}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div className="manual-update-info">
+                                <div className="manual-update-title">{t('behaviour.checkForUpdates')}</div>
+                                <div className="manual-update-desc">
+                                  {t('footer.version')} {currentVersion || '0.3.1'}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="manual-update-pill outline"
+                                onClick={() => {
+                                  playButtonClickSound()
+                                  handleManualCheck()
+                                }}
+                              >
+                                {t('behaviour.checkForUpdates')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {PersistentFooter}
                 </motion.div>
@@ -1333,41 +1317,22 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
             {showScrollUpdateBadge && (
               <motion.div
                 key="scroll-update-badge"
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                initial={{ opacity: 0, y: 14, scale: 0.92 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                onClick={() => {
-                  playButtonClickSound()
-                  updateBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-                }}
-                style={{
-                  position: 'absolute',
-                  bottom: 14,
-                  left: 12,
-                  right: 12,
-                  margin: '0 auto',
-                  width: 'fit-content',
-                  maxWidth: 'calc(100% - 24px)',
-                  background: '#388e3c',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  borderRadius: 20,
-                  padding: '6px 14px',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.45)',
-                  zIndex: 30,
-                  whiteSpace: 'nowrap'
-                }}
+                exit={{ opacity: 0, y: 14, scale: 0.92 }}
+                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                onClick={scrollToUpdateCard}
+                className="floating-update-pill"
               >
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
-                <span>{updateDownloaded ? t('behaviour.restartToUpdateBelow') : t('behaviour.newUpdateAvailableBelow')}</span>
-                <span style={{ fontSize: 11, marginLeft: 2 }}>↓</span>
+                <span className="floating-update-dot" />
+                <span className="floating-update-text">
+                  {updateDownloaded
+                    ? t('behaviour.restartToUpdateBelow')
+                    : isDownloading
+                    ? (downloadPercent > 0 ? `Downloading... (${downloadPercent}%)` : t('behaviour.downloadingUpdate'))
+                    : t('behaviour.newUpdateAvailableBelow')}
+                </span>
+                <span className="floating-update-arrow">↓</span>
               </motion.div>
             )}
           </AnimatePresence>

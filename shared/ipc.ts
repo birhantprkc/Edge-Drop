@@ -136,6 +136,8 @@ export interface EventMap {
   'ui:copy-flare': []
   /** Fired by electron-updater when a new update is available for GitHub builds. */
   'app:update-available': [info: { version: string }]
+  /** Fired by electron-updater with download progress for GitHub builds. */
+  'app:update-progress': [progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }]
   /** Fired by electron-updater when the update has been fully downloaded and is ready to install. */
   'app:update-downloaded': [info: { version: string }]
   /**

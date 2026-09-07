@@ -72,5 +72,6 @@ export interface EdgeApi {
   onCopyFlare: (cb: () => void) => () => void
   onTutorialStep: (cb: (step: number) => void) => () => void
   onUpdateAvailable: (cb: (info: { version: string }) => void) => () => void
+  onUpdateProgress: (cb: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void
   onUpdateDownloaded: (cb: (info: { version: string }) => void) => () => void
 }

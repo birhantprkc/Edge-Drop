@@ -22,7 +22,8 @@ vi.mock('electron', () => ({
 vi.mock('../electron/main/state', () => ({
   pushState: {
     updateAvailable: (...args: unknown[]) => mocks.updateAvailable(...args),
-    updateDownloaded: vi.fn()
+    updateDownloaded: vi.fn(),
+    updateProgress: vi.fn()
   }
 }))
 

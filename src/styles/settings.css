@@ -939,3 +939,336 @@
   color: rgba(255, 255, 255, 0.5);
   line-height: 1;
 }
+
+/* ── Top Update Banner (Live Downloading Progress & Ready to Install) ── */
+.settings-top-update-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #141414;
+  border-radius: 14px;
+  margin: 4px 4px 14px 4px;
+  box-shadow: none;
+  box-sizing: border-box;
+  animation: updateCardFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes updateCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-update-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+}
+
+.settings-update-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 550;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.settings-update-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.35;
+}
+
+.update-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.settings-update-restart-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-top: 4px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-update-restart-btn:hover {
+  background: rgba(255, 255, 255, 0.92);
+  transform: translateY(-1px);
+}
+
+.settings-update-restart-btn:active {
+  transform: scale(0.98);
+}
+
+.settings-update-restart-btn.downloading {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.settings-update-restart-btn.downloading:hover {
+  background: #ffffff;
+  transform: none;
+}
+
+.settings-update-restart-btn.downloading:active {
+  transform: none;
+}
+
+/* ── Manual Update Section (Bottom of Behaviour, above Community) ── */
+.manual-update-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.manual-update-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #141414;
+  border-radius: 12px;
+  box-sizing: border-box;
+  animation: updateCardFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.manual-update-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.manual-update-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 550;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.manual-update-title.error {
+  color: #f87171;
+}
+
+.manual-update-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.35;
+}
+
+.manual-update-desc.error {
+  color: rgba(248, 113, 113, 0.75);
+}
+
+.manual-update-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.manual-update-dot.ready {
+  background: #ffffff;
+}
+
+.manual-update-dot.checking {
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.manual-update-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.manual-update-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.manual-update-pill.primary {
+  background: #ffffff;
+  color: #000000;
+}
+
+.manual-update-pill.primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+  transform: translateY(-1px);
+}
+
+.manual-update-pill.primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.manual-update-pill.primary:disabled {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.manual-update-pill.outline {
+  background: #1f1f1f;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 550;
+}
+
+.manual-update-pill.outline:hover:not(:disabled) {
+  background: #282828;
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.manual-update-pill.outline:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.manual-update-pill.outline:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.manual-update-actions .manual-update-pill {
+  margin-top: 0;
+}
+
+.manual-update-actions .manual-update-pill.primary {
+  flex: 1;
+}
+
+.manual-update-actions .manual-update-pill.outline {
+  width: auto;
+  padding: 0 16px;
+}
+
+/* ── Floating Scroll Indicator Badge for Off-Screen Update Banner ── */
+.floating-update-pill {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  height: 30px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(18, 18, 18, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  white-space: nowrap;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.floating-update-pill:hover {
+  background: #242424;
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+}
+
+.floating-update-pill:active {
+  transform: scale(0.97);
+}
+
+.floating-update-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #ffffff;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.floating-update-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floating-update-arrow {
+  font-size: 11px;
+  opacity: 0.85;
+  transition: transform 0.15s ease;
+}
+
+.floating-update-pill:hover .floating-update-arrow {
+  transform: translateY(1px);
+}
