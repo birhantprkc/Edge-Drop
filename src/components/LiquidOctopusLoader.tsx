@@ -21,11 +21,9 @@ export function LiquidOctopusLoader({
 }: LiquidLoaderProps) {
   const octoRef = useRef<SVGPathElement | null>(null)
 
-  const open = useStore((s) => s.open)
   const copyFlareActive = useStore((s) => s.copyFlareActive)
-  const settingsOpen = useStore((s) => s.settingsOpen)
 
-  const isAnimating = active ?? (open || copyFlareActive || settingsOpen)
+  const isAnimating = active ?? copyFlareActive
 
   // Octopus path dimensions & center coordinates
   const bounds = useMemo(() => {

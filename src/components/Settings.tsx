@@ -68,14 +68,24 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
 
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   useEffect(() => {
-    window.edge.getDisplays().then(setDisplays).catch(() => {})
+    const timer = window.setTimeout(() => {
+      window.edge.getDisplays().then(setDisplays).catch(() => {})
+    }, 250)
+    return () => window.clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    const pull = () => { void useStore.getState().refreshLaunchAtLogin() }
-    pull()
-    const timer = window.setInterval(pull, 2000)
-    return () => window.clearInterval(timer)
+    let timer: number
+    const pullTimer = window.setTimeout(() => {
+      void useStore.getState().refreshLaunchAtLogin()
+      timer = window.setInterval(() => {
+        void useStore.getState().refreshLaunchAtLogin()
+      }, 2000)
+    }, 300)
+    return () => {
+      window.clearTimeout(pullTimer)
+      if (timer) window.clearInterval(timer)
+    }
   }, [])
 
   const updateDownloaded = updateInfo?.downloaded ? { version: updateInfo.latestVersion } : null
@@ -1170,7 +1180,7 @@ export function Settings({ inlineIndicatorStyle }: { inlineIndicatorStyle?: bool
                               }}
                             >
                               <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <LiquidOctopusLoader fillColor="#ffffff" glowColor="rgba(255, 255, 255, 0.85)" speed={1.2} />
+                                <LiquidOctopusLoader fillColor="#ffffff" glowColor="rgba(255, 255, 255, 0.85)" speed={1.2} active={true} />
                               </div>
                               <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{t('appearance.logoStyle')}</div>
                             </div>
@@ -1349,6 +1359,8 @@ function Toggle({
   onChange: (v: boolean) => void
   disabled?: boolean
 }) {
+  const [isHovered, setIsHovered] = useState(false)
+
   return (
     <button
       type="button"
@@ -1356,6 +1368,8 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       disabled={disabled}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={() => {
         if (disabled) return
         playToggleSound(!checked)
@@ -1363,40 +1377,48 @@ function Toggle({
       }}
       style={{
         flexShrink: 0,
-        width: 38,
-        height: 22,
+        width: 36,
+        height: 20,
         borderRadius: 999,
-        background: disabled ? 'rgba(255, 255, 255, 0.05)' : checked ? '#ffffff' : 'rgba(255, 255, 255, 0.12)',
-        border: disabled ? '1px solid rgba(255, 255, 255, 0.08)' : checked ? '1px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.18)',
+        background: disabled
+          ? 'rgba(255, 255, 255, 0.05)'
+          : checked
+          ? '#ffffff'
+          : isHovered
+          ? 'rgba(255, 255, 255, 0.18)'
+          : 'rgba(255, 255, 255, 0.12)',
+        border: 'none',
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
         padding: 0,
         outline: 'none',
-        transition: 'background 0.22s ease, border-color 0.22s ease',
-        boxShadow: !disabled && checked ? '0 0 12px rgba(255, 255, 255, 0.25)' : 'none',
-        opacity: disabled ? 0.45 : 1
+        transition: 'background 0.18s ease, opacity 0.18s ease',
+        boxShadow: 'none',
+        opacity: disabled ? 0.38 : 1
       }}
     >
       <motion.span
         className="toggle-thumb"
         initial={false}
         animate={{
-          x: checked ? 18 : 2,
+          x: checked ? 19 : 3,
           backgroundColor: checked ? '#000000' : '#ffffff'
         }}
         transition={{
           type: 'spring',
-          stiffness: 600,
-          damping: 35
+          stiffness: 520,
+          damping: 32,
+          mass: 0.5
         }}
         style={{
           position: 'absolute',
-          top: 2,
+          top: 3,
           left: 0,
-          width: 16,
-          height: 16,
+          width: 14,
+          height: 14,
           borderRadius: '50%',
-          boxShadow: '0 1.5px 4px rgba(0, 0, 0, 0.4)'
+          boxShadow: 'none',
+          pointerEvents: 'none'
         }}
       />
     </button>

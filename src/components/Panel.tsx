@@ -352,83 +352,91 @@ export function Panel() {
 
           <ToastStack />
           <div style={{ flex: 1, display: 'grid', gridTemplate: '1fr / 1fr', overflow: 'hidden', position: 'relative' }}>
-            <AnimatePresence initial={false}>
-              {settingsOpen ? (
+            {/* Main clipboard / emoji view (persistent so ItemList is never torn down and doesn't jump on Y-axis) */}
+            <div
+              style={{
+                gridArea: '1 / 1 / 2 / 2',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                position: 'relative',
+                opacity: settingsOpen ? 0 : 1,
+                visibility: settingsOpen ? 'hidden' : 'visible',
+                pointerEvents: settingsOpen ? 'none' : 'auto',
+                transition: `opacity ${settings.reduceMotion ? '0.01s' : '0.16s'} ease, visibility ${settings.reduceMotion ? '0.01s' : '0.16s'} ease`
+              }}
+              aria-hidden={settingsOpen}
+            >
+              <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplate: '1fr / 1fr', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    gridArea: '1 / 1 / 2 / 2',
+                    display: emojiOpen ? 'none' : 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    height: '100%',
+                    overflow: 'hidden'
+                  }}
+                  aria-hidden={emojiOpen}
+                >
+                  <ItemList />
+                </div>
+                <div
+                  style={{
+                    gridArea: '1 / 1 / 2 / 2',
+                    display: emojiOpen ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    height: '100%',
+                    overflow: 'hidden'
+                  }}
+                  aria-hidden={!emojiOpen}
+                >
+                  {emojiMounted ? <EmojiPicker active={emojiOpen} /> : null}
+                </div>
+              </div>
+              <div className="footer" style={{ position: 'relative' }}>
+                {!emojiOpen && (
+                  <>
+                    <div className="footer-capsule">
+                      <span className="footer-capsule-count" title={`${filteredCount}`}>
+                        {filteredCount}
+                      </span>
+                    </div>
+                    <div className="spacer" />
+                    <ClearMenu
+                      items={filteredItems}
+                      disabled={recent.length === 0}
+                      panelOpen={open}
+                      onClear={(ids) => clear(ids)}
+                      onClearAll={() => {
+                        if (typeFilter === 'all' && !query.trim()) {
+                          clear()
+                        } else {
+                          clear(recent.map((it) => it.id))
+                        }
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Settings view */}
+            <AnimatePresence>
+              {settingsOpen && (
                 <motion.div
                   key="settings"
-                  initial={{ opacity: 1, x: isRight ? -8 : 8 }}
+                  initial={{ opacity: 0, x: isRight ? -8 : 8 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: isRight ? 8 : -8 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 32, mass: 0.5 }}
+                  transition={settings.reduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 500, damping: 32, mass: 0.5 }}
                   style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
                 >
                   <Settings />
                 </motion.div>
-              ) : (
-                <motion.div
-                  key="main"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 32, mass: 0.5 }}
-                  style={{ gridArea: '1 / 1 / 2 / 2', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
-                >
-                  <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplate: '1fr / 1fr', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        gridArea: '1 / 1 / 2 / 2',
-                        display: emojiOpen ? 'none' : 'flex',
-                        flexDirection: 'column',
-                        minHeight: 0,
-                        height: '100%',
-                        overflow: 'hidden'
-                      }}
-                      aria-hidden={emojiOpen}
-                    >
-                      <ItemList />
-                    </div>
-                    <div
-                      style={{
-                        gridArea: '1 / 1 / 2 / 2',
-                        display: emojiOpen ? 'flex' : 'none',
-                        flexDirection: 'column',
-                        minHeight: 0,
-                        height: '100%',
-                        overflow: 'hidden'
-                      }}
-                      aria-hidden={!emojiOpen}
-                    >
-                      {emojiMounted ? <EmojiPicker active={emojiOpen} /> : null}
-                    </div>
-                  </div>
-                <div className="footer" style={{ position: 'relative' }}>
-                  {!emojiOpen && (
-                    <>
-                      <div className="footer-capsule">
-                        <span className="footer-capsule-count" title={`${filteredCount}`}>
-                          {filteredCount}
-                        </span>
-                      </div>
-                      <div className="spacer" />
-                      <ClearMenu
-                        items={filteredItems}
-                        disabled={recent.length === 0}
-                        panelOpen={open}
-                        onClear={(ids) => clear(ids)}
-                        onClearAll={() => {
-                          if (typeFilter === 'all' && !query.trim()) {
-                            clear()
-                          } else {
-                            clear(recent.map((it) => it.id))
-                          }
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </AnimatePresence>
           </div>
           <DropOverlay />
           <SplitDropZone isRight={isRight} />

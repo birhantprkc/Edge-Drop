@@ -50,31 +50,43 @@ export function Header() {
   const activeIndex = Math.max(0, FILTERS.findIndex((f) => f.id === activeId))
   const ActiveIcon = FILTERS[activeIndex]?.Icon || FILTERS[0].Icon
   const filterChipWidth = 28
+  const reduceMotion = !!settings.reduceMotion
+  const headerFade = `opacity ${reduceMotion ? '0.01s' : '0.16s'} ease`
 
   return (
     <div className="header" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', height: 40, padding: '0 14px', boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 0, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-        {settingsOpen ? (
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#8e8e93', letterSpacing: '0.01em', paddingLeft: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>
-            {t('header.settings')}
-          </span>
-        ) : (
-          <div 
-            className="filter-segmented-track" 
-            style={{ 
-              position: 'relative',
-              display: 'flex', 
-              alignItems: 'center', 
-              background: 'transparent', 
-              border: 'none', 
-              borderRadius: 999, 
-              padding: 0, 
-              gap: 4, 
-              marginLeft: 0,
-              maxWidth: '100%',
-              overflow: 'visible'
-            }}
-          >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplate: '1fr / 1fr',
+          alignItems: 'center',
+          minWidth: 0,
+          flex: 1,
+          height: 28,
+          overflow: 'hidden'
+        }}
+      >
+        <div
+          className="filter-segmented-track"
+          aria-hidden={settingsOpen}
+          style={{
+            gridArea: '1 / 1 / 2 / 2',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 999,
+            padding: 0,
+            gap: 4,
+            marginLeft: 0,
+            maxWidth: '100%',
+            overflow: 'visible',
+            opacity: settingsOpen ? 0 : 1,
+            pointerEvents: settingsOpen ? 'none' : 'auto',
+            transition: headerFade
+          }}
+        >
             {/* Single Persistent Sliding Pill Indicator (ABOVE the buttons) */}
             <motion.div
               initial={false}
@@ -118,6 +130,7 @@ export function Header() {
                   title={f.label}
                   aria-label={f.label}
                   aria-pressed={active}
+                  tabIndex={settingsOpen ? -1 : 0}
                   onPointerEnter={() => {
                     if (f.id === 'emoji') void loadEmojiCatalog()
                   }}
@@ -149,8 +162,28 @@ export function Header() {
                 </button>
               )
             })}
-          </div>
-        )}
+        </div>
+        <span
+          aria-hidden={!settingsOpen}
+          style={{
+            gridArea: '1 / 1 / 2 / 2',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#8e8e93',
+            letterSpacing: '0.01em',
+            paddingLeft: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: 170,
+            lineHeight: '28px',
+            opacity: settingsOpen ? 1 : 0,
+            pointerEvents: 'none',
+            transition: headerFade
+          }}
+        >
+          {t('header.settings')}
+        </span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, paddingRight: 2 }}>
@@ -235,7 +268,34 @@ export function Header() {
             position: 'relative'
           }}
         >
-          {settingsOpen ? <CloseIcon /> : <GearIcon />}
+          <span
+            aria-hidden={settingsOpen}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              opacity: settingsOpen ? 0 : 1,
+              transition: headerFade,
+              pointerEvents: 'none'
+            }}
+          >
+            <GearIcon />
+          </span>
+          <span
+            aria-hidden={!settingsOpen}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              opacity: settingsOpen ? 1 : 0,
+              transition: headerFade,
+              pointerEvents: 'none'
+            }}
+          >
+            <CloseIcon />
+          </span>
           {!settingsOpen && (updateInfo?.downloaded || ((settings.autoUpdates ?? true) && updateInfo?.hasUpdate)) && (
             <span
               style={{

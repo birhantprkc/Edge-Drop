@@ -17,6 +17,37 @@
   overflow: hidden;
 }
 
+/* Specular light-reflection 1px border.
+   Zero-mask hardware-accelerated: 1px specular top highlight centered at 50%
+   that dissolves before reaching corners, paired with a subtle 1px bottom rim. */
+.item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.14s ease;
+  background: 
+    radial-gradient(
+      ellipse 70% 1px at 50% 0%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      transparent 80%
+    ) top / 100% 1px no-repeat,
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.035) 20%,
+      rgba(255, 255, 255, 0.035) 80%,
+      transparent 100%
+    ) bottom / 100% 1px no-repeat;
+}
+
+.item:hover::before {
+  opacity: 1.2;
+}
+
 /* Performance culling — invisible to users.
    Cards outside the scroll viewport skip style/layout/paint of their whole
    subtree; scrolling near them renders them normally. The `auto` keyword
@@ -101,6 +132,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-top: auto;
 }
 
@@ -128,13 +160,51 @@
 .meta {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
+  flex-wrap: nowrap;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-ui);
   font-size: calc(11px * var(--font-scale, 1));
   color: rgba(255, 255, 255, 0.48);
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+.meta .meta-detail {
+  white-space: nowrap;
+}
+
+.meta-hit-count {
+  white-space: nowrap;
+  font-size: calc(10.5px * var(--font-scale, 1));
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.5px 4.5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.meta-copied {
+  white-space: nowrap;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.meta-time {
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+  font-size: calc(11px * var(--font-scale, 1));
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: right;
+  padding-left: 6px;
 }
 
 /* Scroll to top button */
@@ -567,7 +637,35 @@
 }
 
 .fluid-card-row:hover {
-  background: #141414;
+  background: #1c1c1c;
+}
+
+.fluid-card-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.14s ease;
+  background: 
+    radial-gradient(
+      ellipse 70% 1px at 50% 0%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      transparent 80%
+    ) top / 100% 1px no-repeat,
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.035) 20%,
+      rgba(255, 255, 255, 0.035) 80%,
+      transparent 100%
+    ) bottom / 100% 1px no-repeat;
+}
+
+.fluid-card-row:hover::before {
+  opacity: 1.2;
 }
 
 .fluid-card-row:active {

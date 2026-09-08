@@ -302,16 +302,20 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item, timeTick = 
             <div className="item-footer">
               <div className="meta">
                 <KindBadge item={item} />
-                <span key={timeTick}>{relativeTime(item.capturedAt)}</span>
-                {item.hitCount > 1 && <span>· ×{item.hitCount}</span>}
-                {item.data.kind === 'image' && (
-                  <span>
-                    · {item.data.width}×{item.data.height}
-                  </span>
+                <ItemDetails item={item} />
+                {item.hitCount > 1 && (
+                  <>
+                    <span>·</span>
+                    <span className="meta-hit-count" title={`Copied ${item.hitCount} times`}>
+                      ×{item.hitCount}
+                    </span>
+                  </>
                 )}
-                {item.data.kind === 'image' && <span>· {formatBytes(item.data.bytes)}</span>}
-                {copied && <span style={{ color: '#fff' }}>· {t('item.copied')}</span>}
+                {copied && <span className="meta-copied">· {t('item.copied')}</span>}
               </div>
+              <span className="meta-time" key={timeTick}>
+                {relativeTime(item.capturedAt)}
+              </span>
             </div>
           )}
         </div>
@@ -927,6 +931,57 @@ function KindBadge({ item }: { item: ClipboardItemDto }) {
         </span>
       )
     }
+  }
+}
+
+function ItemDetails({ item }: { item: ClipboardItemDto }) {
+  switch (item.data.kind) {
+    case 'text': {
+      if (item.data.isUrl) {
+        let domain = ''
+        try {
+          const urlStr = item.data.text.startsWith('http://') || item.data.text.startsWith('https://')
+            ? item.data.text
+            : `https://${item.data.text}`
+          domain = new URL(urlStr).hostname.replace(/^www\./, '')
+        } catch {}
+        if (domain) {
+          return <span className="meta-detail">· {domain}</span>
+        }
+        return null
+      }
+
+      if (item.data.isColor) {
+        return <span className="meta-detail">· {item.data.text.trim()}</span>
+      }
+
+      return null
+    }
+
+    case 'image': {
+      const dims = item.data.width && item.data.height ? `${item.data.width}×${item.data.height}` : ''
+      const size = item.data.bytes ? formatBytes(item.data.bytes) : ''
+      return (
+        <>
+          {dims && <span className="meta-detail">· {dims}</span>}
+          {size && <span className="meta-detail">· {size}</span>}
+        </>
+      )
+    }
+
+    case 'image-collection': {
+      const totalBytes = item.data.images?.reduce((acc, img) => acc + (img.bytes || 0), 0) || 0
+      return totalBytes > 0 ? <span className="meta-detail">· {formatBytes(totalBytes)}</span> : null
+    }
+
+    case 'files': {
+      const entries = item.data.entries
+      const totalBytes = entries?.reduce((acc, e) => acc + (e.size || 0), 0) || 0
+      return totalBytes > 0 ? <span className="meta-detail">· {formatBytes(totalBytes)}</span> : null
+    }
+
+    default:
+      return null
   }
 }
 
