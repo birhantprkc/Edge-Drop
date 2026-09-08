@@ -63,7 +63,7 @@ function getNestedProp(obj: any, path: string): string | undefined {
 /**
  * Main translation function.
  * E.g., t('header.searchPlaceholder')
- * E.g., t('behaviour.updateAvailableTitle', { version: '0.2.2' })
+ * E.g., t('behaviour.updateAvailableTitle', { version: '0.3.1' })
  */
 export function t(path: string, params?: Record<string, string | number>): string {
   const settingsLang = useStore.getState().settings.language

@@ -21,7 +21,7 @@ vi.mock('electron', () => ({
     getPath: (name: string) => (name === 'exe' ? mocks.exePath : 'C:\\mock\\userData'),
     setLoginItemSettings: (...args: unknown[]) => mocks.setLoginItemSettings(...args),
     getLoginItemSettings: (...args: unknown[]) => mocks.getLoginItemSettings(...args),
-    getVersion: () => '0.2.7',
+    getVersion: () => '0.3.1',
     getAppPath: () => 'C:\\mock\\app',
     disableHardwareAcceleration: vi.fn(),
     enableSandbox: vi.fn(),

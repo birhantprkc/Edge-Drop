@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  version: '0.2.7',
+  version: '0.3.1',
   netRequest: vi.fn(),
   updateAvailable: vi.fn(),
   getSettings: vi.fn(() => ({ autoUpdates: true }))
@@ -83,7 +83,7 @@ describe('auto-updater isolation', () => {
 
     it('checkForUpdatesManual reports up-to-date at the running version and never touches the network', async () => {
       const result = await checkForUpdatesManual()
-      expect(result).toEqual({ status: 'up-to-date', version: '0.2.7' })
+      expect(result).toEqual({ status: 'up-to-date', version: '0.3.1' })
       expect(mocks.netRequest).not.toHaveBeenCalled()
       expect(mocks.updateAvailable).not.toHaveBeenCalled()
     })
@@ -99,22 +99,22 @@ describe('auto-updater isolation', () => {
 
   describe('GitHub exe build', () => {
     it('checkForUpdatesManual reports available when GitHub latest is newer', async () => {
-      mockGithubRelease('v0.2.8')
+      mockGithubRelease('v0.3.2')
       const result = await checkForUpdatesManual()
-      expect(result).toEqual({ status: 'available', version: '0.2.8' })
+      expect(result).toEqual({ status: 'available', version: '0.3.2' })
       expect(mocks.netRequest).toHaveBeenCalled()
-      expect(mocks.updateAvailable).toHaveBeenCalledWith({ version: '0.2.8' })
+      expect(mocks.updateAvailable).toHaveBeenCalledWith({ version: '0.3.2' })
     })
 
     it('checkForUpdatesManual reports up-to-date when GitHub latest matches', async () => {
-      mockGithubRelease('v0.2.7')
+      mockGithubRelease('v0.3.1')
       const result = await checkForUpdatesManual()
-      expect(result).toEqual({ status: 'up-to-date', version: '0.2.7' })
+      expect(result).toEqual({ status: 'up-to-date', version: '0.3.1' })
       expect(mocks.updateAvailable).not.toHaveBeenCalled()
     })
 
     it('checkForUpdatesManual hits the Edge-Drop releases endpoint', async () => {
-      mockGithubRelease('v0.2.7')
+      mockGithubRelease('v0.3.1')
       await checkForUpdatesManual()
       expect(mocks.netRequest).toHaveBeenCalledWith(expect.objectContaining({
         method: 'GET',

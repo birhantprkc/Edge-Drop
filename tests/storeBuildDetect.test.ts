@@ -114,7 +114,7 @@ describe('isStoreBuild — every detection signal', () => {
   })
 
   it('is false when packaged package.json has no buildTarget', () => {
-    writePackagedJson({ name: 'edge-drop', version: '0.2.7' })
+    writePackagedJson({ name: 'edge-drop', version: '0.3.1' })
     expect(isStoreBuild()).toBe(false)
   })
 
