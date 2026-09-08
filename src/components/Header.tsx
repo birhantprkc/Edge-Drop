@@ -104,9 +104,9 @@ export function Header() {
                 width: filterChipWidth,
                 height: 28,
                 borderRadius: 999,
-                background: '#ffffff',
+                background: 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)',
                 border: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 #ffffff',
                 pointerEvents: 'none',
                 zIndex: 2,
                 display: 'flex',
@@ -138,24 +138,6 @@ export function Header() {
                     playButtonClickSound()
                     if (f.id === 'emoji') setEmojiOpen(true)
                     else setTypeFilter(f.id)
-                  }}
-                  style={{
-                    position: 'relative',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: filterChipWidth,
-                    height: 28,
-                    padding: 0,
-                    color: 'rgba(255, 255, 255, 0.75)',
-                    background: '#141414',
-                    border: 'none',
-                    borderRadius: 999,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'color 0.18s ease, background-color 0.15s ease',
-                    zIndex: 1,
-                    flexShrink: 0
                   }}
                 >
                   <Icon width={14} height={14} />

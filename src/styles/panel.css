@@ -544,10 +544,32 @@
   background: transparent;
 }
 .filter-chip {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(var(--bg-card, #141414), var(--bg-card, #141414)) padding-box,
+              linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.03) 100%) border-box;
+  border: 1px solid transparent;
+  -webkit-background-clip: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
   outline: none;
+  padding: 0;
+  transition: all 0.16s ease;
+  flex-shrink: 0;
 }
 .filter-chip:not(.active):hover {
-  color: rgba(255, 255, 255, 0.95) !important;
+  background: linear-gradient(var(--bg-card-hover, #1c1c1c), var(--bg-card-hover, #1c1c1c)) padding-box,
+              linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 100%) border-box;
+  -webkit-background-clip: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  color: #ffffff;
 }
 
 /* Copy Indicator Sine Curve Morph Styles */
