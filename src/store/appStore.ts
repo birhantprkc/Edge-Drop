@@ -453,12 +453,11 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   async copy(id) {
-    // Copy IS a copy action: the indicator SHOULD fire. The flag only blocks
-    // the heuristic double-fire from the promote push that follows.
+    // Internal copy from the clipboard: write to OS clipboard with internal copy
+    // guard active so the external edge copy indicator flare does not appear.
     set({ isInternalCopying: true })
     try {
-      const ok = await edge.copyItem(id)
-      if (ok !== false) get().triggerCopyFlare()
+      await edge.copyItem(id)
     } finally {
       setTimeout(() => set({ isInternalCopying: false }), 400)
     }
@@ -467,8 +466,7 @@ export const useStore = create<AppState>((set, get) => ({
   async copySubitem(req) {
     set({ isInternalCopying: true })
     try {
-      const ok = await edge.copySubitem(req)
-      if (ok !== false) get().triggerCopyFlare()
+      await edge.copySubitem(req)
     } finally {
       setTimeout(() => set({ isInternalCopying: false }), 400)
     }
@@ -481,7 +479,12 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   async pasteSubitem(req) {
-    await edge.pasteSubitem(req)
+    set({ isInternalCopying: true })
+    try {
+      await edge.pasteSubitem(req)
+    } finally {
+      setTimeout(() => set({ isInternalCopying: false }), 600)
+    }
   },
 
   async pasteEmoji(text) {
