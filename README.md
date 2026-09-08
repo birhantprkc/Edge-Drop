@@ -35,7 +35,7 @@
   <a href="https://github.com/Deepender25/Edge-Drop/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Deepender25/Edge-Drop?style=flat-square&labelColor=23272e&color=f6c7d6" /></a>
   <a href="https://github.com/Deepender25/Edge-Drop/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/Deepender25/Edge-Drop?style=flat-square&labelColor=23272e&color=c7e7f6" /></a>
   <a href="https://github.com/Deepender25/Edge-Drop/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Deepender25/Edge-Drop?style=flat-square&labelColor=23272e&color=d2f4e8" /></a>
-  <img src="https://img.shields.io/badge/tests-269%20passing-8ca77b?style=flat-square&logo=vitest&logoColor=white&labelColor=23272e" alt="Tests" />
+  <img src="https://img.shields.io/badge/tests-364%20passing-8ca77b?style=flat-square&logo=vitest&logoColor=white&labelColor=23272e" alt="Tests" />
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/Deepender25/Edge-Drop?style=flat-square&labelColor=23272e&color=ffe6b3" /></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-93a4fc?style=flat-square&logo=windows&logoColor=white&labelColor=23272e" alt="Platform" />
 </p>
@@ -261,7 +261,7 @@ npm run build:store  # outputs an MSIX .appx for Microsoft Store submission
 - **Versioned Screen Geometry & Probe:** Replaced asynchronous display queries with a pure geometric screen probe (`stickProbe.ts`) backed by versioned display-change caching, eliminating boundary seam jitter across mixed-DPI monitor arrays.
 - **Cross-Reboot Display Persistence:** Edge-Drop remembers your chosen monitor across device restarts. A 4-tier resolution pipeline silently re-identifies the correct physical monitor after Windows re-assigns numeric display IDs on reboot.
 - **Smart Windows Fullscreen Game Detection:** Native Win32 `SHQueryUserNotificationState` OS detection (`fullscreen.ts`) combined with `GetForegroundWindow` + `GetClassNameA` filtering (`Progman`, `WorkerW`, `Shell_TrayWnd`) automatically suppresses edge hover during Direct3D games (*VALORANT*, *Cyberpunk*, *PowerPoint*) while allowing Edge-Drop to open smoothly on the Windows Home Screen / Desktop.
-- **Self-Healing Launch at Login:** Automatic Windows Registry synchronization (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) ensures autostart entries update cleanly with live binary paths and `--hidden` launch flags after every app update.
+- **Self-Healing Launch at Login (Quoted Paths):** Automatic Windows Registry synchronization (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) strictly quotes executable paths, guaranteeing that usernames or installation paths with spaces launch cleanly on startup. Includes automatic migration and healing for unquoted keys across updates.
 - **RAM Footprint Stabilization (~130 MB):** Large text entries (>300 chars) are stored as disk payload files (`payloads/<id>.txt`), holding only 300-char preview snippets in memory. Locks operational RAM to ~130 MB–160 MB with a V8 ceiling cap of 512 MB.
 - **High-Performance Image Thumbnailing Protocol (`edgelocal://thumb/`):** Custom Electron protocol streams 240px thumbnails for history cards instead of loading multi-megapixel raw image files into memory, preventing GPU memory bloat.
 
@@ -301,7 +301,9 @@ npm run build:store  # outputs an MSIX .appx for Microsoft Store submission
 - **Low-Profile Bottom Quit Pill:** Compact, subtle Quit pill button (`.subtle-quit-btn`) centered at the very bottom of the settings view without noisy header text.
 
 **Silent Background Auto-Updates**
-- **Zero-Friction Updates (`electron-updater`):** GitHub releases feature background downloading and a single-click "Restart to Update" button.
+- **Zero-Friction Updates (`electron-updater`):** GitHub releases feature background downloading, live download progress streaming, and a single-click "Restart to Update" button.
+- **Interactive Floating Update Badge:** Displays live download percentages, transferred byte counts, and a one-click restart action on the shelf without layout obstruction.
+- **Windows Light Theme Adaptive System Tray:** Dynamically detects Windows taskbar theme changes and automatically swaps between pure-white and high-contrast dark vector tray icons.
 - **Monochrome Glassmorphic Banner:** Prominently positioned at the top of the scrollable content area across all category tabs. Styled with a dark-mode glassmorphic 4% white card fill (`rgba(255, 255, 255, 0.04)`), 12% white border, and high-contrast white button.
 - **Microsoft Store Isolation:** Isolated build pipelines ensure Microsoft Store (MSIX) builds remain 100% compliant with Store terms and conditions without integrated update mechanisms (`isStoreBuild()`).
 
@@ -313,10 +315,12 @@ npm run build:store  # outputs an MSIX .appx for Microsoft Store submission
 - **Move Pasted Items to Top Toggle:** Optional setting to move unpinned items to the top of Recent upon pasting.
 - Incognito mode — one click suspends polling for sensitive data
 - Auto-delete timer options (Never / 1h / 6h / 24h / 7d) and clear unpinned on restart
+- **Dynamic Relative Timestamp Aging:** Active 5-second interval timer continuously ages card timestamps ("just now" → "1m" → "1h") without requiring filter tab switching.
 
 **Offline Rich URL Previews & One-Click Launch**
+- **Apple-Inspired URL Cards:** Full link destination displayed cleanly beneath the webpage title with domain tag, custom site favicon, and humanized headline.
 - **Zero-Cost Offline URL Previews:** Automatically parses website domain names, titles, and site favicons for copied URLs without external API overhead.
-- **Quick Action Links & Browser Launch:** Clicking the external link launcher button on URL cards or flyouts opens links directly in your default web browser.
+- **Quick Action Links & Browser Launch:** Clicking the external link launcher button on URL cards or flyouts opens links directly in your default web browser. Click-outside dismisses the flyout without pasting.
 
 **Universal Native OS Drag & Drop Vault**
 - **0ms Instant Drag-out (Hover Pre-staging):** Background hover pre-staging (`window.edge.prestageDrag`) loads temp file handles and generates pastel vector drag ghosts before mouse drag begins, yielding 0ms drag latency.
@@ -358,7 +362,9 @@ npm run build:store  # outputs an MSIX .appx for Microsoft Store submission
 **UI / UX & Hardware Compositor Motion**
 - **Hardware Compositor-Only Transitions**: Converted card pinning, unpinning, and category tab transitions to GPU-accelerated transforms (`transform` & `opacity`), eliminating layout reflows during rapid interactions.
 - **Virtualized Scroll Performance**: Implemented list virtualization with `content-visibility: auto`, `itemRenderKey` value signatures, and a shared 30-second relative-time tick for smooth 60 FPS scrolling across large history databases.
-- **macOS Segmented Control 5-Category Filter Suite**: Integrated 5-type filter bar (**`All`**, **`Text`**, **`Links`**, **`Images`**, **`Files`**) with a single persistent sliding spring indicator pill (`stiffness: 500`, `damping: 35`) and zero shape distortion.
+- **Obsidian Light-Reflection Filter Tiles**: Header category filters feature hardware-accelerated dual-stop specular reflection borders (`22%` white at 12 o'clock tapering to `3%` at 6 o'clock) matching item card rims, built on neutral `#141414` / `#1c1c1c` obsidian bases with zero blue tint.
+- **Satin White Sliding Pill**: Single persistent indicator pill with tactile spring physics (`stiffness: 440`, `damping: 34`), satin pearl gradient (`#ffffff` to `#ebebeb`), and top bevel highlight.
+- **Smart Copy Indicator Discrimination**: The sine-curve copy indicator badge appears instantly when copying across external desktop apps, but is smartly suppressed when using in-shelf copy buttons to prevent redundant flashes.
 - **Zero-Gap Layout Exit Animation**: Smooth physical height and margin collapse during item deletion, completely preventing empty phantom gaps or frozen offsets in the list.
 - **Independent Pinned Section State per Filter**: Each filter category tab maintains its own independent pinned section collapse/expand state (`collapsedMap`), persisted across sessions in `localStorage`.
 - **Unified Image Entity Classification**: Native screenshots (`Win + Shift + S`) and copied image files (`.png`, `.jpg`, `.webp`, `.svg`) are unified under the **`Images`** filter tab with visual thumbnail cards.
